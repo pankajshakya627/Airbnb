@@ -107,6 +107,22 @@ curl -X POST http://localhost:8000/auth/refresh \
 
 ---
 
+### Token Management Tips
+
+1. **Token Storage**: Never commit tokens to git. Use environment variables.
+2. **Refresh Logic**: When you get a 401 Unauthorized, use the `/auth/refresh` endpoint to get a new access token without re-entering credentials.
+3. **Decoded Token**: You can inspect your token at [jwt.io](https://jwt.io) to see your roles and expiration time.
+
+### Common Troubleshooting
+
+| Issue                                    | Solution                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------ |
+| `Detail: Could not validate credentials` | Your token is invalid or expired. Login again.                           |
+| `Detail: Not enough permissions`         | Check your role in `roles` claim. You might need `HOTEL_MANAGER`.        |
+| `Connection Refused`                     | Ensure server is running (`uvicorn app.main:app --reload`) and DB is up. |
+
+---
+
 ## Upgrade to Hotel Manager
 
 By default, new users have only `GUEST` role. To manage hotels, you need `HOTEL_MANAGER` role.
