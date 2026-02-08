@@ -1,6 +1,30 @@
 # AirBnb FastAPI Backend
 
-A modern FastAPI backend for hotel management and booking system, converted from a Spring Boot application.
+## 🏨 Project Overview
+
+A robust, production-ready Hotel Management & Booking System backend built with **FastAPI**. This project is a complete conversion of a legacy Spring Boot application to a modern, high-performance Python architecture. It features secure authentication, role-based access control, comprehensive booking flows, and Stripe payment integration.
+
+## ✨ Key Features
+
+- **Authentication & Security**: JWT-based auth, BCrypt password hashing, and Role-Based Access Control (RBAC) for Guests and Hotel Managers.
+- **Hotel Management**: Complete CRUD for Hotels, Rooms, and Amenities.
+- **Dynamic Inventory**: Intelligent room inventory management with surge pricing capabilities.
+- **Booking Engine**: Full booking lifecycle management (Reservation -> Payment -> Confirmation -> Cancellation).
+- **Payment Integration**: Seamless Stripe checkout integration with webhook handling.
+- **Search & Filtering**: Optimized search functionality for finding available hotels by city and dates.
+- **Database Migrations**: Automated schema management using Alembic.
+- **Dockerized**: Fully containerized setup for easy deployment.
+
+## 🛠️ Tech Stack
+
+- **Framework**: FastAPI (Python 3.11+)
+- **Database**: PostgreSQL 14+
+- **ORM**: SQLAlchemy (Async)
+- **Migrations**: Alembic
+- **Validation**: Pydantic
+- **Testing**: Pytest & HTTPX
+- **Payments**: Stripe API
+- **Containerization**: Docker & Docker Compose
 
 ## 🚀 Quick Start
 
