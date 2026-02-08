@@ -844,7 +844,567 @@ alembic revision --autogenerate -m "description"
 
 ---
 
-## 13. System Design Interview Questions & Answers
+## 13. System Design Concepts & Theory
+
+This section explains fundamental system design concepts used in this project with visual diagrams.
+
+---
+
+### 13.1 CAP Theorem
+
+The CAP theorem states that a distributed system can only guarantee two of three properties:
+
+```mermaid
+graph TD
+    subgraph CAP["CAP Theorem"]
+        C["🔒 Consistency<br/>All nodes see same data"]
+        A["⚡ Availability<br/>Every request gets response"]
+        P["🔗 Partition Tolerance<br/>System works despite network failures"]
+    end
+
+    C --- A
+    A --- P
+    P --- C
+
+    subgraph CHOICE["Our Choice: CP"]
+        CP["✅ Consistency + Partition Tolerance"]
+        WHY["Payments require strong consistency"]
+    end
+
+    style C fill:#e3f2fd
+    style A fill:#fff3e0
+    style P fill:#e8f5e9
+    style CP fill:#c8e6c9
+```
+
+**Our Decision**: We chose **CP (Consistency + Partition Tolerance)** because:
+
+- Financial transactions (payments) must be consistent
+- A booking should never be double-sold
+- We sacrifice availability briefly during network partitions
+
+---
+
+### 13.2 Database ACID Properties
+
+Every booking transaction follows ACID principles:
+
+```mermaid
+flowchart LR
+    subgraph ACID["🗄️ ACID Properties"]
+        A["🔷 Atomicity<br/>All or nothing"]
+        C["🔷 Consistency<br/>Valid state only"]
+        I["🔷 Isolation<br/>No interference"]
+        D["🔷 Durability<br/>Permanent once committed"]
+    end
+
+    subgraph BOOKING["Booking Transaction"]
+        B1["1. Check inventory"]
+        B2["2. Reserve rooms"]
+        B3["3. Create booking"]
+        B4["4. COMMIT"]
+    end
+
+    A --> BOOKING
+    B1 --> B2 --> B3 --> B4
+
+    style A fill:#bbdefb
+    style C fill:#c8e6c9
+    style I fill:#fff9c4
+    style D fill:#f8bbd9
+```
+
+**Example**: If step 3 fails, steps 1-2 are rolled back (Atomicity).
+
+---
+
+### 13.3 Horizontal vs Vertical Scaling
+
+```mermaid
+flowchart TB
+    subgraph VERTICAL["📈 Vertical Scaling (Scale Up)"]
+        V1["Small Server<br/>2 CPU, 4GB RAM"]
+        V2["Medium Server<br/>8 CPU, 32GB RAM"]
+        V3["Large Server<br/>64 CPU, 256GB RAM"]
+        V1 --> V2 --> V3
+    end
+
+    subgraph HORIZONTAL["📊 Horizontal Scaling (Scale Out)"]
+        LB["Load Balancer"]
+        S1["Server 1"]
+        S2["Server 2"]
+        S3["Server 3"]
+        S4["Server N..."]
+        LB --> S1
+        LB --> S2
+        LB --> S3
+        LB --> S4
+    end
+
+    style VERTICAL fill:#fff3e0
+    style HORIZONTAL fill:#e8f5e9
+    style LB fill:#bbdefb
+```
+
+| Aspect         | Vertical              | Horizontal              |
+| -------------- | --------------------- | ----------------------- |
+| **Cost**       | Expensive hardware    | Commodity servers       |
+| **Limit**      | Hardware ceiling      | Virtually unlimited     |
+| **Complexity** | Simple                | Requires load balancing |
+| **Downtime**   | Required for upgrades | Zero-downtime possible  |
+
+**Our Approach**: Horizontal scaling with stateless API servers.
+
+---
+
+### 13.4 Load Balancing Strategies
+
+```mermaid
+flowchart TB
+    subgraph STRATEGIES["Load Balancing Algorithms"]
+        RR["🔄 Round Robin<br/>Sequential distribution"]
+        LC["📉 Least Connections<br/>Route to least busy"]
+        IP["🎯 IP Hash<br/>Sticky sessions"]
+        WRR["⚖️ Weighted RR<br/>Capacity-based"]
+    end
+
+    subgraph FLOW["Request Flow"]
+        CLIENT["👤 Client"]
+        LB["🔀 Load Balancer<br/>(Nginx)"]
+        API1["API #1"]
+        API2["API #2"]
+        API3["API #3"]
+    end
+
+    CLIENT --> LB
+    LB --> API1
+    LB --> API2
+    LB --> API3
+
+    style RR fill:#e3f2fd
+    style LC fill:#c8e6c9
+    style IP fill:#fff9c4
+    style WRR fill:#f8bbd9
+    style LB fill:#bbdefb
+```
+
+**Recommended**: Round Robin for stateless APIs, IP Hash if session affinity needed.
+
+---
+
+### 13.5 Caching Patterns
+
+```mermaid
+flowchart TB
+    subgraph PATTERNS["Caching Patterns"]
+        direction TB
+        CT["📖 Cache-Through"]
+        CB["📝 Cache-Aside"]
+        WB["✍️ Write-Behind"]
+    end
+
+    subgraph CACHE_ASIDE["Cache-Aside Pattern (Our Choice)"]
+        A1["1. App checks cache"]
+        A2["2. Cache miss?"]
+        A3["3. Query database"]
+        A4["4. Store in cache"]
+        A5["5. Return data"]
+    end
+
+    A1 --> A2
+    A2 -->|Miss| A3
+    A3 --> A4
+    A4 --> A5
+    A2 -->|Hit| A5
+
+    subgraph LAYERS["Cache Layers"]
+        L1["L1: In-Memory<br/>(Application)"]
+        L2["L2: Redis<br/>(Distributed)"]
+        L3["L3: Database<br/>(Source of Truth)"]
+    end
+
+    L1 --> L2 --> L3
+
+    style CT fill:#e3f2fd
+    style CB fill:#c8e6c9
+    style WB fill:#fff9c4
+    style L2 fill:#ffcdd2
+```
+
+**Cache Invalidation Strategies**:
+
+- **TTL-based**: Expire after X minutes
+- **Event-based**: Invalidate on data change
+- **Write-through**: Update cache on every write
+
+---
+
+### 13.6 API Rate Limiting
+
+```mermaid
+flowchart LR
+    subgraph ALGORITHMS["Rate Limiting Algorithms"]
+        TB["🪣 Token Bucket"]
+        LW["📊 Sliding Window"]
+        FW["📅 Fixed Window"]
+    end
+
+    subgraph TOKEN_BUCKET["Token Bucket (Recommended)"]
+        BUCKET["🪣 Bucket<br/>Capacity: 100"]
+        REFILL["⏰ Refill: 10/sec"]
+        REQUEST["📨 Request<br/>-1 token"]
+    end
+
+    REFILL --> BUCKET
+    BUCKET --> REQUEST
+
+    subgraph RESPONSE["Response"]
+        OK["✅ 200 OK<br/>Tokens available"]
+        REJECT["❌ 429 Too Many<br/>Bucket empty"]
+    end
+
+    REQUEST --> OK
+    REQUEST --> REJECT
+
+    style TB fill:#c8e6c9
+    style BUCKET fill:#bbdefb
+    style OK fill:#c8e6c9
+    style REJECT fill:#ffcdd2
+```
+
+**Our Configuration**:
+
+- 100 requests per minute per user
+- 1000 requests per minute per IP (unauthenticated)
+- Burst allowance: 20 requests
+
+---
+
+### 13.7 Database Indexing
+
+```mermaid
+flowchart TB
+    subgraph WITHOUT["❌ Without Index"]
+        T1["Table Scan<br/>O(n) - Slow"]
+        T2["Check every row"]
+    end
+
+    subgraph WITH["✅ With Index"]
+        I1["B-Tree Index<br/>O(log n) - Fast"]
+        I2["Jump to matching rows"]
+    end
+
+    subgraph INDEXES["Our Indexes"]
+        IDX1["📍 hotel.city"]
+        IDX2["📅 inventory.date"]
+        IDX3["🔑 booking.user_id"]
+        IDX4["📧 user.email (unique)"]
+    end
+
+    style WITHOUT fill:#ffcdd2
+    style WITH fill:#c8e6c9
+    style IDX1 fill:#bbdefb
+    style IDX2 fill:#bbdefb
+    style IDX3 fill:#bbdefb
+    style IDX4 fill:#bbdefb
+```
+
+**Index Best Practices**:
+
+- Index columns used in WHERE clauses
+- Index foreign keys for JOIN performance
+- Avoid over-indexing (slows writes)
+- Use composite indexes for multi-column queries
+
+---
+
+### 13.8 Microservices vs Monolith
+
+```mermaid
+flowchart TB
+    subgraph MONOLITH["🏛️ Monolith (Current)"]
+        M1["Single Codebase"]
+        M2["Single Deployment"]
+        M3["Shared Database"]
+        M1 --> M2 --> M3
+    end
+
+    subgraph MICRO["🧩 Microservices (Future)"]
+        S1["Auth Service"]
+        S2["Hotel Service"]
+        S3["Booking Service"]
+        S4["Payment Service"]
+        GW["API Gateway"]
+
+        GW --> S1
+        GW --> S2
+        GW --> S3
+        GW --> S4
+    end
+
+    subgraph COMPARE["Comparison"]
+        direction LR
+        CM["Monolith: Simple, Fast to start"]
+        MS["Microservices: Scalable, Complex"]
+    end
+
+    style MONOLITH fill:#e3f2fd
+    style MICRO fill:#e8f5e9
+    style GW fill:#fff9c4
+```
+
+**When to Migrate**:
+
+- Team size > 10 developers
+- Different scaling needs per service
+- Independent deployment required
+- Different technology stacks needed
+
+---
+
+### 13.9 Event-Driven Architecture
+
+```mermaid
+flowchart LR
+    subgraph PRODUCERS["Event Producers"]
+        P1["Booking Service"]
+        P2["Payment Service"]
+    end
+
+    subgraph BROKER["Message Broker"]
+        Q["📬 Event Queue<br/>(RabbitMQ/Kafka)"]
+    end
+
+    subgraph CONSUMERS["Event Consumers"]
+        C1["📧 Email Service"]
+        C2["📊 Analytics"]
+        C3["🔔 Notification"]
+    end
+
+    P1 -->|BookingCreated| Q
+    P2 -->|PaymentSuccess| Q
+    Q --> C1
+    Q --> C2
+    Q --> C3
+
+    style Q fill:#fff9c4
+    style P1 fill:#bbdefb
+    style P2 fill:#bbdefb
+    style C1 fill:#c8e6c9
+    style C2 fill:#c8e6c9
+    style C3 fill:#c8e6c9
+```
+
+**Event Types in Our System**:
+
+- `BookingCreated` → Send confirmation email
+- `PaymentProcessed` → Update inventory
+- `BookingCancelled` → Release inventory, notify user
+
+---
+
+### 13.10 Circuit Breaker Pattern
+
+Protects against cascading failures when external services fail.
+
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED: Normal operation
+
+    CLOSED --> OPEN: Failures > threshold
+    OPEN --> HALF_OPEN: After timeout
+    HALF_OPEN --> CLOSED: Success
+    HALF_OPEN --> OPEN: Failure
+
+    note right of CLOSED
+        ✅ Requests pass through
+        📊 Monitor failure rate
+    end note
+
+    note right of OPEN
+        ❌ Reject all requests
+        ⏰ Wait for timeout
+    end note
+
+    note right of HALF_OPEN
+        🧪 Allow test requests
+        📈 Check if recovered
+    end note
+```
+
+**Implementation for Stripe**:
+
+```python
+# Circuit breaker for Stripe API
+@circuit_breaker(failure_threshold=5, timeout=30)
+async def create_checkout_session(booking):
+    return await stripe.checkout.Session.create(...)
+```
+
+---
+
+### 13.11 Database Replication
+
+```mermaid
+flowchart TB
+    subgraph REPLICATION["Database Replication"]
+        PRIMARY["🔵 Primary<br/>(Read + Write)"]
+        REPLICA1["⚪ Replica 1<br/>(Read Only)"]
+        REPLICA2["⚪ Replica 2<br/>(Read Only)"]
+    end
+
+    subgraph ROUTING["Query Routing"]
+        WRITE["✍️ Writes"]
+        READ["📖 Reads"]
+    end
+
+    WRITE --> PRIMARY
+    PRIMARY -->|Async Replication| REPLICA1
+    PRIMARY -->|Async Replication| REPLICA2
+    READ --> REPLICA1
+    READ --> REPLICA2
+
+    style PRIMARY fill:#bbdefb
+    style REPLICA1 fill:#e0e0e0
+    style REPLICA2 fill:#e0e0e0
+    style WRITE fill:#fff9c4
+    style READ fill:#c8e6c9
+```
+
+**Benefits**:
+
+- Read scalability (distribute read load)
+- High availability (failover to replica)
+- Geographic distribution (reduce latency)
+
+---
+
+### 13.12 Saga Pattern for Distributed Transactions
+
+When a booking spans multiple services, we use the Saga pattern:
+
+```mermaid
+sequenceDiagram
+    participant O as Orchestrator
+    participant I as Inventory
+    participant P as Payment
+    participant B as Booking
+
+    O->>I: 1. Reserve Inventory
+    I-->>O: ✅ Reserved
+
+    O->>P: 2. Process Payment
+    P-->>O: ✅ Charged
+
+    O->>B: 3. Create Booking
+    B-->>O: ✅ Created
+
+    Note over O,B: All steps successful!
+
+    rect rgb(255, 200, 200)
+        Note over O,B: FAILURE SCENARIO
+        O->>I: 1. Reserve Inventory
+        I-->>O: ✅ Reserved
+        O->>P: 2. Process Payment
+        P-->>O: ❌ Failed
+        O->>I: COMPENSATE: Release Inventory
+        I-->>O: ✅ Released
+    end
+```
+
+**Saga Types**:
+
+- **Choreography**: Each service triggers next (event-driven)
+- **Orchestration**: Central coordinator manages steps (our approach)
+
+---
+
+### 13.13 Idempotency
+
+Ensuring the same operation produces the same result when repeated.
+
+```mermaid
+flowchart TB
+    subgraph PROBLEM["❌ Without Idempotency"]
+        R1["Request 1: Create Booking"]
+        R2["Request 1 (retry): Create Booking"]
+        D["💥 Duplicate Booking!"]
+        R1 --> D
+        R2 --> D
+    end
+
+    subgraph SOLUTION["✅ With Idempotency Key"]
+        K1["Request 1 + Key: abc123"]
+        K2["Request 1 (retry) + Key: abc123"]
+        C["Check: Key exists?"]
+        NEW["Create new booking"]
+        RET["Return existing"]
+
+        K1 --> C
+        K2 --> C
+        C -->|No| NEW
+        C -->|Yes| RET
+    end
+
+    style PROBLEM fill:#ffcdd2
+    style SOLUTION fill:#c8e6c9
+    style D fill:#ef5350
+```
+
+**Implementation**:
+
+```python
+@app.post("/bookings/init")
+async def init_booking(request, idempotency_key: str = Header(None)):
+    existing = await cache.get(idempotency_key)
+    if existing:
+        return existing  # Return cached result
+
+    booking = await create_booking(request)
+    await cache.set(idempotency_key, booking, ttl=3600)
+    return booking
+```
+
+---
+
+### 13.14 Eventual Consistency
+
+In distributed systems, data becomes consistent over time (not immediately).
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant API as API Server
+    participant DB as Primary DB
+    participant R as Read Replica
+    participant C as Cache
+
+    U->>API: Update profile
+    API->>DB: Write to primary
+    DB-->>API: ✅ Committed
+
+    par Async Replication
+        DB->>R: Replicate data
+    and Cache Invalidation
+        API->>C: Invalidate cache
+    end
+
+    Note over R,C: 50-200ms delay (eventual consistency)
+
+    U->>API: Read profile
+    alt Cache hit
+        API->>C: Get from cache
+    else Cache miss
+        API->>R: Get from replica
+        Note over API,R: Might return stale data briefly
+    end
+```
+
+**Trade-off**: We accept eventual consistency for reads (search results) but require strong consistency for writes (payments).
+
+---
+
+## 14. System Design Interview Questions & Answers
 
 This section covers common interview questions related to this hotel booking system design. Use these to prepare for HLD/system design interviews.
 
@@ -975,7 +1535,7 @@ sequenceDiagram
 
 ```
 ┌─────────────────────────────────────────────┐
-│           Global Router / Load Balancer      │
+│           Global Router / Load Balancer     │
 ├─────────────┬─────────────┬─────────────────┤
 │  Shard US   │  Shard EU   │   Shard APAC    │
 │  (NYC, LA)  │ (London,Paris) (Tokyo, Sydney)│
