@@ -23,34 +23,34 @@ This document provides a comprehensive High-Level Design (HLD) for the AirBnb Ho
 ### 2.1 Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENT LAYER                              │
+┌────────────────────────────────────────────────────────────────┐
+│                        CLIENT LAYER                            │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
 │  │  Web App │  │Mobile App│  │  Swagger │  │   cURL   │        │
 │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
-└───────┼─────────────┼─────────────┼─────────────┼───────────────┘
+└───────┼─────────────┼─────────────┼─────────────┼──────────────┘
         │             │             │             │
         └─────────────┴──────┬──────┴─────────────┘
                              │ HTTPS
 ┌────────────────────────────┼────────────────────────────────────┐
-│                    API GATEWAY LAYER                             │
+│                    API GATEWAY LAYER                            │
 │  ┌─────────────────────────┴─────────────────────────────────┐  │
-│  │                    FastAPI Application                     │  │
+│  │                    FastAPI Application                    │  │
 │  │  ┌─────────────────────────────────────────────────────┐  │  │
-│  │  │                    Routers (8)                       │  │  │
+│  │  │                    Routers (8)                      │  │  │
 │  │  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────────┐    │  │  │
 │  │  │  │  Auth  │ │ Hotels │ │ Rooms  │ │  Bookings  │    │  │  │
 │  │  │  ├────────┤ ├────────┤ ├────────┤ ├────────────┤    │  │  │
-│  │  │  │ Users  │ │Inventory│ │ Browse │ │  Webhooks  │    │  │  │
+│  │  │  │ Users  │ │Inventory│ │ Browse │ │  Webhooks │    │  │  │
 │  │  │  └────────┘ └────────┘ └────────┘ └────────────┘    │  │  │
 │  │  └─────────────────────────────────────────────────────┘  │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                              │
 ┌────────────────────────────┼────────────────────────────────────┐
-│                    SERVICE LAYER                                 │
+│                    SERVICE LAYER                                │
 │  ┌─────────────────────────┴─────────────────────────────────┐  │
-│  │                   Business Logic (8 Services)              │  │
+│  │                   Business Logic (8 Services)             │  │
 │  │  ┌────────────┐ ┌────────────┐ ┌────────────────────────┐ │  │
 │  │  │AuthService │ │HotelService│ │    BookingService      │ │  │
 │  │  ├────────────┤ ├────────────┤ ├────────────────────────┤ │  │
@@ -62,32 +62,92 @@ This document provides a comprehensive High-Level Design (HLD) for the AirBnb Ho
 └─────────────────────────────────────────────────────────────────┘
                              │
 ┌────────────────────────────┼────────────────────────────────────┐
-│                    DATA ACCESS LAYER                             │
+│                    DATA ACCESS LAYER                            │
 │  ┌─────────────────────────┴─────────────────────────────────┐  │
-│  │              SQLAlchemy Async ORM (7 Models)               │  │
+│  │              SQLAlchemy Async ORM (7 Models)              │  │
 │  │  ┌──────┐ ┌───────┐ ┌──────┐ ┌─────────┐ ┌─────────────┐  │  │
 │  │  │ User │ │ Hotel │ │ Room │ │Inventory│ │   Booking   │  │  │
 │  │  └──────┘ └───────┘ └──────┘ └─────────┘ └─────────────┘  │  │
-│  │  ┌───────┐ ┌──────────────┐                                │  │
-│  │  │ Guest │ │HotelMinPrice │                                │  │
-│  │  └───────┘ └──────────────┘                                │  │
+│  │  ┌───────┐ ┌──────────────┐                               │  │
+│  │  │ Guest │ │HotelMinPrice │                               │  │
+│  │  └───────┘ └──────────────┘                               │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                              │
 ┌────────────────────────────┼────────────────────────────────────┐
-│                    DATABASE LAYER                                │
+│                    DATABASE LAYER                               │
 │  ┌─────────────────────────┴─────────────────────────────────┐  │
-│  │                   PostgreSQL 14+                           │  │
-│  │        (asyncpg driver for async connections)              │  │
+│  │                   PostgreSQL 14+                          │  │
+│  │        (asyncpg driver for async connections)             │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                              │
 ┌────────────────────────────┴────────────────────────────────────┐
-│                    EXTERNAL SERVICES                             │
+│                    EXTERNAL SERVICES                            │
 │  ┌───────────────────┐                                          │
 │  │    Stripe API     │  (Payment Processing & Webhooks)         │
 │  └───────────────────┘                                          │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### 2.1.1 Interactive Architecture Diagram
+
+```mermaid
+flowchart TB
+    subgraph CLIENTS["🌐 Client Layer"]
+        WEB["🖥️ Web App"]
+        MOBILE["📱 Mobile App"]
+        SWAGGER["📚 Swagger UI"]
+        CURL["⌨️ cURL/Postman"]
+    end
+
+    subgraph API["⚡ FastAPI Gateway"]
+        AUTH["🔐 Auth Router"]
+        HOTELS["🏨 Hotels Router"]
+        ROOMS["🛏️ Rooms Router"]
+        BOOKINGS["📅 Bookings Router"]
+        USERS["👤 Users Router"]
+        INVENTORY["📦 Inventory Router"]
+        BROWSE["🔍 Browse Router"]
+        WEBHOOKS["🔗 Webhooks Router"]
+    end
+
+    subgraph SERVICES["🧠 Service Layer"]
+        AUTH_SVC["AuthService"]
+        HOTEL_SVC["HotelService"]
+        ROOM_SVC["RoomService"]
+        BOOKING_SVC["BookingService"]
+        CHECKOUT_SVC["CheckoutService"]
+        USER_SVC["UserService"]
+        GUEST_SVC["GuestService"]
+        INV_SVC["InventoryService"]
+    end
+
+    subgraph DATA["💾 Data Layer"]
+        ORM["SQLAlchemy Async ORM"]
+    end
+
+    subgraph DB["🗄️ Database"]
+        POSTGRES[("PostgreSQL 14+")]
+    end
+
+    subgraph EXTERNAL["🌍 External"]
+        STRIPE["💳 Stripe API"]
+    end
+
+    CLIENTS --> API
+    API --> SERVICES
+    SERVICES --> DATA
+    DATA --> DB
+    BOOKINGS --> CHECKOUT_SVC --> STRIPE
+    WEBHOOKS --> STRIPE
+
+    style CLIENTS fill:#e1f5fe
+    style API fill:#fff3e0
+    style SERVICES fill:#e8f5e9
+    style DATA fill:#fce4ec
+    style DB fill:#f3e5f5
+    style EXTERNAL fill:#fff8e1
 ```
 
 ### 2.2 Layer Responsibilities
@@ -146,6 +206,80 @@ This document provides a comprehensive High-Level Design (HLD) for the AirBnb Ho
                               └───────────────┘
 ```
 
+### 3.1.1 Interactive ER Diagram
+
+```mermaid
+erDiagram
+    USER ||--o{ GUEST : "has saved"
+    USER ||--o{ HOTEL : "owns"
+    USER ||--o{ BOOKING : "makes"
+    HOTEL ||--o{ ROOM : "contains"
+    HOTEL ||--o{ INVENTORY : "tracks"
+    ROOM ||--o{ INVENTORY : "has daily"
+    ROOM ||--o{ BOOKING : "reserved in"
+    BOOKING }o--o{ GUEST : "includes"
+
+    USER {
+        int id PK
+        string email UK
+        string password
+        string name
+        array roles
+        enum gender
+        date date_of_birth
+    }
+
+    HOTEL {
+        int id PK
+        string name
+        string city
+        array photos
+        array amenities
+        boolean active
+        int owner_id FK
+    }
+
+    ROOM {
+        int id PK
+        int hotel_id FK
+        string type
+        decimal base_price
+        int total_count
+        int capacity
+    }
+
+    INVENTORY {
+        int id PK
+        int hotel_id FK
+        int room_id FK
+        date date
+        decimal price
+        decimal surge_factor
+        int booked_count
+        int reserved_count
+        boolean closed
+    }
+
+    BOOKING {
+        int id PK
+        int hotel_id FK
+        int room_id FK
+        int user_id FK
+        date check_in
+        date check_out
+        enum status
+        decimal amount
+    }
+
+    GUEST {
+        int id PK
+        int user_id FK
+        string name
+        enum gender
+        int age
+    }
+```
+
 ### 3.2 Table Descriptions
 
 | Table             | Purpose                 | Key Fields                      |
@@ -192,6 +326,43 @@ This document provides a comprehensive High-Level Design (HLD) for the AirBnb Ho
      │                     │────────────────────>│
      │  {user profile}     │<────────────────────│
      │<────────────────────│                     │
+```
+
+### 4.1.1 Interactive Auth Sequence
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as 🖥️ Client
+    participant A as ⚡ API
+    participant S as 🔐 Security
+    participant D as 🗄️ Database
+
+    Note over C,D: LOGIN FLOW
+    C->>+A: POST /auth/login {email, password}
+    A->>+D: Query user by email
+    D-->>-A: User record
+    A->>+S: Verify password (bcrypt)
+    S-->>-A: ✅ Valid
+    A->>S: Generate JWT tokens
+    S-->>A: {access_token, refresh_token}
+    A-->>-C: 200 OK {tokens}
+
+    Note over C,D: AUTHENTICATED REQUEST
+    C->>+A: GET /users/profile<br/>Authorization: Bearer <token>
+    A->>+S: Decode & validate JWT
+    S-->>-A: {user_id, roles}
+    A->>+D: Fetch user profile
+    D-->>-A: User data
+    A-->>-C: 200 OK {profile}
+
+    Note over C,D: TOKEN REFRESH
+    C->>+A: POST /auth/refresh<br/>Cookie: refreshToken
+    A->>+S: Validate refresh token
+    S-->>-A: ✅ Valid
+    A->>S: Generate new access token
+    S-->>A: {new_access_token}
+    A-->>-C: 200 OK {token}
 ```
 
 ### 4.2 Role-Based Access Control (RBAC)
@@ -244,6 +415,35 @@ def hash_password(password: str) -> str:
 └────────────────────────────────────────────────────────────────┘
 ```
 
+### 5.1.1 Interactive Booking State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> RESERVED: Initialize Booking
+
+    RESERVED --> GUESTS_ADDED: Add Guests
+    RESERVED --> CANCELLED: Cancel
+
+    GUESTS_ADDED --> PAYMENTS_PENDING: Initiate Payment
+    GUESTS_ADDED --> CANCELLED: Cancel
+
+    PAYMENTS_PENDING --> CONFIRMED: Stripe Webhook Success
+    PAYMENTS_PENDING --> CANCELLED: Payment Failed/Timeout
+
+    CONFIRMED --> [*]
+    CANCELLED --> [*]
+
+    note right of RESERVED
+        Inventory reserved
+        15 min timeout
+    end note
+
+    note right of CONFIRMED
+        Inventory confirmed
+        Payment captured
+    end note
+```
+
 **Flow Steps:**
 
 1. **Initialize Booking (RESERVED)**
@@ -287,6 +487,36 @@ Hotel Lifecycle:
                     └──────────────┘  └─────────┘
 ```
 
+### 5.2.1 Interactive Hotel Management Flow
+
+```mermaid
+flowchart LR
+    subgraph SETUP["📝 Setup Phase"]
+        CREATE["🏨 Create Hotel"] --> INACTIVE["⏸️ Inactive"]
+        INACTIVE --> ADD_ROOMS["🛏️ Add Rooms"]
+        ADD_ROOMS --> SET_INV["📦 Set Inventory"]
+    end
+
+    subgraph LIVE["🟢 Live Phase"]
+        ACTIVE["✅ Active"]
+        BOOKINGS["📅 Receive Bookings"]
+        REPORTS["📊 View Reports"]
+    end
+
+    SET_INV --> ACTIVATE{"Activate?"}
+    ACTIVATE -->|Yes| ACTIVE
+    ACTIVATE -->|No| INACTIVE
+    ACTIVE --> BOOKINGS
+    ACTIVE --> REPORTS
+    ACTIVE --> UPDATE["✏️ Update Details"]
+    UPDATE --> ACTIVE
+
+    style CREATE fill:#bbdefb
+    style ACTIVE fill:#c8e6c9
+    style BOOKINGS fill:#fff9c4
+    style REPORTS fill:#f8bbd9
+```
+
 ### 5.3 Inventory Management
 
 **Theory: Dynamic Pricing with Surge Factor**
@@ -312,6 +542,38 @@ Example:
 │ available   │ total - book_count - reserved_count      │
 │ closed      │ Manually closed for maintenance          │
 └─────────────┴──────────────────────────────────────────┘
+```
+
+### 5.3.1 Interactive Inventory Calculation Flow
+
+```mermaid
+flowchart TD
+    subgraph INPUT["📥 Inputs"]
+        TOTAL["Total Count: 10"]
+        BOOKED["Booked: 3"]
+        RESERVED["Reserved: 2"]
+        CLOSED["Closed: false"]
+    end
+
+    CALC["🧮 Calculate Available"]
+    FORMULA["Available = Total - Booked - Reserved"]
+    RESULT["Available: 5 rooms"]
+
+    subgraph PRICING["💰 Dynamic Pricing"]
+        BASE["Base: $200"]
+        SURGE["Surge: 1.5x"]
+        FINAL["Final: $300"]
+    end
+
+    TOTAL --> CALC
+    BOOKED --> CALC
+    RESERVED --> CALC
+    CALC --> FORMULA --> RESULT
+
+    BASE --> SURGE --> FINAL
+
+    style RESULT fill:#c8e6c9
+    style FINAL fill:#fff9c4
 ```
 
 ---
@@ -358,6 +620,36 @@ Example:
 404 Not Found    # Resource doesn't exist
 422 Unprocessable# Pydantic validation failed
 500 Internal     # Server error
+```
+
+### 6.4 Payment Flow with Stripe
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as 👤 User
+    participant A as ⚡ API
+    participant S as 💳 Stripe
+    participant W as 🔗 Webhook
+
+    U->>+A: POST /bookings/1/payments
+    A->>A: Create line items
+    A->>+S: Create Checkout Session
+    S-->>-A: {session_id, url}
+    A-->>-U: {session_url}
+
+    U->>+S: Redirect to Stripe Checkout
+    Note over U,S: User enters payment details
+    S-->>-U: Payment completed
+
+    S->>+W: POST /webhooks/stripe<br/>checkout.session.completed
+    W->>W: Verify signature
+    W->>W: Update booking → CONFIRMED
+    W->>W: Convert reserved → booked
+    W-->>-S: 200 OK
+
+    U->>+A: GET /bookings/1/status
+    A-->>-U: {status: CONFIRMED}
 ```
 
 ---
