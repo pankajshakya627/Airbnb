@@ -3,6 +3,7 @@ from datetime import date
 from fastapi import HTTPException, status
 from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.booking import Booking
 from app.models.enums import BookingStatus
@@ -65,7 +66,15 @@ class BookingService:
 
     async def add_guests(self, booking_id: int, guest_ids: list[int], user: User) -> BookingResponse:
         """Add guests to a booking."""
-        booking = await self._get_user_booking(booking_id, user)
+        # Load booking with guests eagerly to avoid lazy-load in async context
+        result = await self.db.execute(
+            select(Booking)
+            .options(selectinload(Booking.guests))
+            .where(and_(Booking.id == booking_id, Booking.user_id == user.id))
+        )
+        booking = result.scalar_one_or_none()
+        if not booking:
+            raise HTTPException(status_code=404, detail=f"Booking not found: {booking_id}")
 
         # Get guests owned by user
         result = await self.db.execute(select(Guest).where(and_(Guest.id.in_(guest_ids), Guest.user_id == user.id)))
