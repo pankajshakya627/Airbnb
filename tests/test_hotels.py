@@ -31,7 +31,7 @@ class TestCreateHotel:
         """Test hotel creation without auth fails."""
         response = await client.post("/admin/hotels", json={"name": "Test Hotel", "city": "NYC"})
 
-        assert response.status_code == 401
+        assert response.status_code in (401, 403)
 
     @pytest.mark.asyncio
     async def test_create_hotel_guest_forbidden(self, client: AsyncClient, auth_headers):

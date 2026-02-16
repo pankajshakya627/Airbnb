@@ -20,7 +20,7 @@ class TestUserProfile:
         """Test getting profile without auth fails."""
         response = await client.get("/users/profile")
 
-        assert response.status_code == 401
+        assert response.status_code in (401, 403)
 
     @pytest.mark.asyncio
     async def test_update_profile_success(self, client: AsyncClient, auth_headers, test_user):

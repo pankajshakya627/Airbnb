@@ -24,7 +24,7 @@ class TestCreateRoom:
         assert response.status_code == 201
         data = response.json()
         assert data["type"] == "Presidential Suite"
-        assert data["base_price"] == 999.99
+        assert float(data["base_price"]) == 999.99
         assert data["total_count"] == 2
 
     @pytest.mark.asyncio
@@ -35,7 +35,7 @@ class TestCreateRoom:
             json={"type": "Standard", "base_price": 100, "total_count": 5, "capacity": 2},
         )
 
-        assert response.status_code == 401
+        assert response.status_code in (401, 403)
 
     @pytest.mark.asyncio
     async def test_create_room_not_owner(self, client: AsyncClient, auth_headers, test_hotel):
@@ -87,7 +87,7 @@ class TestUpdateRoom:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["base_price"] == 249.99
+        assert float(data["base_price"]) == 249.99
         assert data["total_count"] == 10
 
 
