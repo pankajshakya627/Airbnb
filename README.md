@@ -52,110 +52,17 @@ A robust, production-ready Hotel Management & Booking System backend built with 
 
 ## 🏗️ System Architecture
 
-```mermaid
-flowchart TB
-    subgraph Client["🌐 Client Layer"]
-        WEB["Web App"]
-        MOB["Mobile App"]
-        API_DOC["Swagger /docs"]
-    end
-
-    subgraph Gateway["🔐 API Gateway"]
-        FP["FastAPI\n+ CORS Middleware"]
-        JWT["JWT Auth\n+ RBAC"]
-    end
-
-    subgraph Routers["📡 Router Layer"]
-        direction LR
-        R1["Auth"]
-        R2["Hotels"]
-        R3["Rooms"]
-        R4["Bookings"]
-        R5["Inventory"]
-        R6["Browse"]
-        R7["Users"]
-        R8["Webhooks"]
-    end
-
-    subgraph Services["⚙️ Service Layer"]
-        direction LR
-        S1["AuthService"]
-        S2["HotelService"]
-        S3["BookingService"]
-        S4["InventoryService"]
-        S5["CheckoutService"]
-    end
-
-    subgraph Data["💾 Data Layer"]
-        ORM["SQLAlchemy\nAsync ORM"]
-        PG[("PostgreSQL 16")]
-    end
-
-    subgraph External["🌍 External"]
-        STRIPE["Stripe API"]
-    end
-
-    Client --> Gateway
-    FP --> JWT
-    JWT --> Routers
-    Routers --> Services
-    Services --> ORM
-    ORM --> PG
-    S5 --> STRIPE
-
-    style Client fill:#1a1a2e,stroke:#e94560,color:#eee
-    style Gateway fill:#16213e,stroke:#0f3460,color:#eee
-    style Routers fill:#0f3460,stroke:#533483,color:#eee
-    style Services fill:#533483,stroke:#e94560,color:#eee
-    style Data fill:#1a1a2e,stroke:#e94560,color:#eee
-    style External fill:#16213e,stroke:#0f3460,color:#eee
-```
+<p align="center">
+  <img src="docs/diagrams/architecture.svg" alt="System Architecture" width="100%">
+</p>
 
 ---
 
 ## 🔄 Booking Flow
 
-```mermaid
-sequenceDiagram
-    actor Guest
-    participant API as FastAPI
-    participant BS as BookingService
-    participant INV as Inventory
-    participant DB as PostgreSQL
-    participant PAY as Stripe
-
-    rect rgb(30, 40, 60)
-        Note over Guest,DB: 1️⃣ Search & Reserve
-        Guest->>API: POST /bookings/init
-        API->>BS: initialise_booking()
-        BS->>DB: Check availability
-        DB-->>BS: Available ✅
-        BS->>INV: Reserve rooms
-        INV->>DB: UPDATE reserved_count
-        BS->>DB: INSERT booking (RESERVED)
-        DB-->>API: Booking created
-        API-->>Guest: {status: RESERVED, amount: $599}
-    end
-
-    rect rgb(40, 50, 70)
-        Note over Guest,PAY: 2️⃣ Add Guests & Pay
-        Guest->>API: POST /bookings/{id}/addGuests
-        API->>DB: Link guests → booking
-        API-->>Guest: {status: GUESTS_ADDED}
-        Guest->>API: POST /bookings/{id}/payments
-        API->>PAY: Create checkout session
-        PAY-->>API: session_url
-        API-->>Guest: {session_url: "https://stripe.com/..."}
-    end
-
-    rect rgb(30, 60, 40)
-        Note over PAY,DB: 3️⃣ Payment Confirmation
-        PAY->>API: POST /webhook (payment.success)
-        API->>BS: confirm_booking()
-        BS->>INV: Move reserved → booked
-        BS->>DB: UPDATE status = CONFIRMED
-    end
-```
+<p align="center">
+  <img src="docs/diagrams/booking-flow.svg" alt="Booking Lifecycle" width="100%">
+</p>
 
 ---
 
@@ -705,27 +612,9 @@ pytest tests/test_bookings.py::TestInitializeBooking -v
 
 ## 🔄 CI/CD Pipeline
 
-```mermaid
-flowchart LR
-    subgraph CI["🔁 CI Pipeline"]
-        direction LR
-        PUSH["📤 Push to main"] --> LINT["🔍 Lint\n(Ruff)"]
-        LINT --> TEST["🧪 Test\n(56 tests + PostgreSQL)"]
-        TEST --> BUILD["🐳 Build\nDocker Image"]
-        BUILD --> PUSH_IMG["📦 Push to\nGHCR"]
-    end
-
-    subgraph CD["🚀 CD Pipeline"]
-        direction LR
-        PULL["📥 Pull\nLatest Image"] --> DEPLOY["🚀 Deploy\n(SSH/ECS/Railway)"]
-        DEPLOY --> HEALTH["❤️ Health\nCheck"]
-    end
-
-    CI --> CD
-
-    style CI fill:#1a1a2e,stroke:#e94560,color:#eee
-    style CD fill:#16213e,stroke:#0f3460,color:#eee
-```
+<p align="center">
+  <img src="docs/diagrams/ci-cd-pipeline.svg" alt="CI/CD Pipeline" width="100%">
+</p>
 
 | Stage      | Tool                   | What it does                                      |
 | ---------- | ---------------------- | ------------------------------------------------- |
@@ -757,27 +646,98 @@ Enforced rules: `pycodestyle`, `pyflakes`, `isort`, `pyupgrade`, `flake8-bugbear
 ## 📁 Project Structure
 
 ```
-├── .github/workflows/     # CI/CD pipeline
-│   ├── ci.yml             # Lint → Test → Docker Build
-│   └── deploy.yml         # Deployment placeholder
+AirBnbfastapi/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                     # CI: Lint → Test → Docker Build & Push
+│       └── deploy.yml                 # CD: Deploy placeholder (SSH/ECS/Railway)
+├── alembic/
+│   ├── env.py                         # Alembic environment config
+│   ├── script.py.mako                 # Migration template
+│   └── versions/
+│       └── beb29e1df7e9_initial.py    # Initial migration
 ├── app/
-│   ├── main.py            # FastAPI application entry
-│   ├── config.py          # Environment configuration
-│   ├── database.py        # SQLAlchemy async setup
-│   ├── models/            # 7 SQLAlchemy ORM models
-│   ├── schemas/           # Pydantic v2 request/response DTOs
-│   ├── routers/           # 8 API router modules
-│   ├── services/          # Business logic layer
-│   ├── security/          # JWT & RBAC authentication
-│   └── exceptions/        # Global error handlers
-├── tests/                 # 56 async tests (77% coverage)
+│   ├── __init__.py
+│   ├── main.py                        # FastAPI app entry + lifespan
+│   ├── config.py                      # Pydantic settings (env vars)
+│   ├── database.py                    # SQLAlchemy async engine + session
+│   ├── exceptions/
+│   │   ├── __init__.py
+│   │   └── handlers.py                # Global HTTP exception handlers
+│   ├── models/                        # 7 SQLAlchemy ORM models
+│   │   ├── __init__.py
+│   │   ├── booking.py                 # Booking + guest M2M
+│   │   ├── enums.py                   # BookingStatus, Gender, Role
+│   │   ├── guest.py                   # Guest profile
+│   │   ├── hotel.py                   # Hotel + amenities + contact
+│   │   ├── hotel_min_price.py         # Min price computed column
+│   │   ├── inventory.py               # Date-level room inventory
+│   │   ├── room.py                    # Room type + pricing
+│   │   └── user.py                    # User + roles
+│   ├── routers/                       # 8 API route modules
+│   │   ├── __init__.py
+│   │   ├── auth.py                    # /auth/signup, /auth/login, /auth/refresh
+│   │   ├── bookings.py                # /bookings/* CRUD
+│   │   ├── browse.py                  # /hotels/search, /hotels/{id}/info
+│   │   ├── hotels.py                  # /admin/hotels/* CRUD
+│   │   ├── inventory.py               # /admin/inventory/* management
+│   │   ├── rooms.py                   # /admin/hotels/{id}/rooms/* CRUD
+│   │   ├── users.py                   # /users/profile, /users/guests/*
+│   │   └── webhooks.py                # /webhooks/stripe
+│   ├── schemas/                       # Pydantic v2 DTOs
+│   │   ├── __init__.py
+│   │   ├── booking.py                 # BookingCreate, BookingResponse
+│   │   ├── common.py                  # Shared schemas
+│   │   ├── guest.py                   # GuestCreate, GuestResponse
+│   │   ├── hotel.py                   # HotelCreate, HotelResponse
+│   │   ├── inventory.py               # InventoryUpdate, InventoryResponse
+│   │   ├── room.py                    # RoomCreate, RoomResponse
+│   │   └── user.py                    # UserCreate, UserResponse, Token
+│   ├── security/
+│   │   ├── __init__.py
+│   │   ├── dependencies.py            # get_current_user, role_required
+│   │   ├── jwt.py                     # JWT create/decode tokens
+│   │   └── password.py                # BCrypt hash/verify
+│   ├── services/                      # Business logic layer
+│   │   ├── __init__.py
+│   │   ├── auth_service.py            # Signup, login, token refresh
+│   │   ├── booking_service.py         # Booking lifecycle management
+│   │   ├── checkout_service.py        # Stripe checkout integration
+│   │   ├── guest_service.py           # Guest CRUD operations
+│   │   ├── hotel_service.py           # Hotel CRUD + activation
+│   │   ├── inventory_service.py       # Inventory queries + updates
+│   │   ├── room_service.py            # Room CRUD + inventory init
+│   │   └── user_service.py            # Profile management
+│   └── utils/
+│       └── __init__.py
 ├── docs/
-│   ├── HLD.md             # High-Level Design document
-│   └── LLD.md             # Low-Level Design document
-├── Dockerfile             # Multi-stage build + HEALTHCHECK
-├── docker-compose.yml     # Local development stack
-├── ruff.toml              # Linter/formatter configuration
-└── .dockerignore          # Docker build exclusions
+│   ├── diagrams/                      # Animated SVG diagrams
+│   │   ├── architecture.svg           # System architecture
+│   │   ├── booking-flow.svg           # Booking lifecycle
+│   │   └── ci-cd-pipeline.svg         # CI/CD pipeline
+│   ├── GUIDE.md                       # Developer guide
+│   ├── HLD.md                         # High-Level Design document
+│   └── LLD.md                         # Low-Level Design document
+├── tests/                             # 56 async tests (77% coverage)
+│   ├── __init__.py
+│   ├── conftest.py                    # Shared fixtures + async DB setup
+│   ├── test_auth.py                   # Authentication tests
+│   ├── test_bookings.py               # Booking flow tests
+│   ├── test_browse.py                 # Hotel search tests
+│   ├── test_hotels.py                 # Hotel management tests
+│   ├── test_inventory.py              # Inventory management tests
+│   ├── test_rooms.py                  # Room management tests
+│   └── test_users.py                  # User profile tests
+├── .dockerignore                      # Docker build exclusions
+├── .env.example                       # Environment template
+├── .gitignore
+├── alembic.ini                        # Alembic configuration
+├── docker-compose.yml                 # Local dev stack (app + PostgreSQL)
+├── Dockerfile                         # Multi-stage build + HEALTHCHECK
+├── pytest.ini                         # Pytest configuration
+├── README.md
+├── requirements.txt                   # Python dependencies
+└── ruff.toml                          # Ruff linter/formatter config
 ```
 
 ---

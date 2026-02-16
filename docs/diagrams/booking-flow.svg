@@ -1,0 +1,203 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 550" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0c29"/>
+      <stop offset="50%" stop-color="#302b63"/>
+      <stop offset="100%" stop-color="#24243e"/>
+    </linearGradient>
+    <filter id="glow2">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow2">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="550" fill="url(#bg2)" rx="16"/>
+
+  <!-- Title -->
+  <text x="450" y="38" text-anchor="middle" fill="#fff" font-size="22" font-weight="700" opacity="0">
+    🔄 Booking Lifecycle
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" fill="freeze"/>
+  </text>
+
+  <!-- === STEP NODES === -->
+  <!-- Step 1: Search -->
+  <g opacity="0" filter="shadow2">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="0.3s" fill="freeze"/>
+    <rect x="40" y="70" width="140" height="90" rx="14" fill="#e94560" opacity="0.9"/>
+    <text x="110" y="98" text-anchor="middle" fill="#fff" font-size="28">🔍</text>
+    <text x="110" y="120" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">SEARCH</text>
+    <text x="110" y="140" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">City + Dates</text>
+    <!-- Pulse ring -->
+    <rect x="40" y="70" width="140" height="90" rx="14" fill="none" stroke="#e94560" stroke-width="2">
+      <animate attributeName="stroke-width" values="2;4;2" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.9;0.3;0.9" dur="2s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- Arrow 1→2 -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="0.7s" fill="freeze"/>
+    <line x1="180" y1="115" x2="215" y2="115" stroke="#ff6b9d" stroke-width="2.5">
+      <animate attributeName="x2" from="180" to="215" dur="0.4s" begin="0.7s" fill="freeze"/>
+    </line>
+    <polygon points="213,110 213,120 223,115" fill="#ff6b9d"/>
+  </g>
+
+  <!-- Step 2: Reserve -->
+  <g opacity="0" filter="shadow2">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="0.8s" fill="freeze"/>
+    <rect x="225" y="70" width="140" height="90" rx="14" fill="#0f3460" opacity="0.9"/>
+    <text x="295" y="98" text-anchor="middle" fill="#fff" font-size="28">📋</text>
+    <text x="295" y="120" text-anchor="middle" fill="#74b9ff" font-size="12" font-weight="700">RESERVE</text>
+    <text x="295" y="140" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">Lock Inventory</text>
+  </g>
+
+  <!-- Arrow 2→3 -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="1.2s" fill="freeze"/>
+    <line x1="365" y1="115" x2="400" y2="115" stroke="#74b9ff" stroke-width="2.5">
+      <animate attributeName="x2" from="365" to="400" dur="0.4s" begin="1.2s" fill="freeze"/>
+    </line>
+    <polygon points="398,110 398,120 408,115" fill="#74b9ff"/>
+  </g>
+
+  <!-- Step 3: Add Guests -->
+  <g opacity="0" filter="shadow2">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="1.3s" fill="freeze"/>
+    <rect x="410" y="70" width="140" height="90" rx="14" fill="#533483" opacity="0.9"/>
+    <text x="480" y="98" text-anchor="middle" fill="#fff" font-size="28">👥</text>
+    <text x="480" y="120" text-anchor="middle" fill="#d4a5ff" font-size="12" font-weight="700">ADD GUESTS</text>
+    <text x="480" y="140" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">Link Travelers</text>
+  </g>
+
+  <!-- Arrow 3→4 -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="1.7s" fill="freeze"/>
+    <line x1="550" y1="115" x2="585" y2="115" stroke="#d4a5ff" stroke-width="2.5">
+      <animate attributeName="x2" from="550" to="585" dur="0.4s" begin="1.7s" fill="freeze"/>
+    </line>
+    <polygon points="583,110 583,120 593,115" fill="#d4a5ff"/>
+  </g>
+
+  <!-- Step 4: Payment -->
+  <g opacity="0" filter="shadow2">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="1.8s" fill="freeze"/>
+    <rect x="595" y="70" width="140" height="90" rx="14" fill="#6c5ce7" opacity="0.9"/>
+    <text x="665" y="98" text-anchor="middle" fill="#fff" font-size="28">💳</text>
+    <text x="665" y="120" text-anchor="middle" fill="#a29bfe" font-size="12" font-weight="700">PAYMENT</text>
+    <text x="665" y="140" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">Stripe Checkout</text>
+  </g>
+
+  <!-- Arrow 4→5 -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="2.2s" fill="freeze"/>
+    <line x1="735" y1="115" x2="770" y2="115" stroke="#a29bfe" stroke-width="2.5">
+      <animate attributeName="x2" from="735" to="770" dur="0.4s" begin="2.2s" fill="freeze"/>
+    </line>
+    <polygon points="768,110 768,120 778,115" fill="#a29bfe"/>
+  </g>
+
+  <!-- Step 5: Confirmed -->
+  <g opacity="0" filter="shadow2">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="2.3s" fill="freeze"/>
+    <rect x="780" y="70" width="100" height="90" rx="14" fill="#00b894" opacity="0.9"/>
+    <text x="830" y="98" text-anchor="middle" fill="#fff" font-size="28">✅</text>
+    <text x="830" y="120" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">CONFIRMED</text>
+    <text x="830" y="140" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">Booked!</text>
+    <!-- Success pulse -->
+    <rect x="780" y="70" width="100" height="90" rx="14" fill="none" stroke="#55efc4" stroke-width="2">
+      <animate attributeName="stroke-width" values="2;5;2" dur="1.5s" begin="2.7s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.2;1" dur="1.5s" begin="2.7s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- === DETAIL BOXES === -->
+  <!-- Search Detail -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="3s" fill="freeze"/>
+    <rect x="30" y="190" width="260" height="145" rx="10" fill="rgba(233,69,96,0.1)" stroke="#e94560" stroke-width="1"/>
+    <text x="50" y="215" fill="#e94560" font-size="13" font-weight="700">1. Search &amp; Availability</text>
+    <text x="50" y="238" fill="#ccc" font-size="11">GET /hotels/search</text>
+    <text x="50" y="258" fill="#999" font-size="10">• Filter by city, dates, rooms</text>
+    <text x="50" y="275" fill="#999" font-size="10">• Check inventory availability</text>
+    <text x="50" y="292" fill="#999" font-size="10">• Return hotels with min price</text>
+    <text x="50" y="312" fill="#999" font-size="10">• Optimized with subquery joins</text>
+  </g>
+
+  <!-- Reserve Detail -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="3.3s" fill="freeze"/>
+    <rect x="310" y="190" width="270" height="145" rx="10" fill="rgba(15,52,96,0.2)" stroke="#0f3460" stroke-width="1"/>
+    <text x="330" y="215" fill="#74b9ff" font-size="13" font-weight="700">2. Initialize Booking</text>
+    <text x="330" y="238" fill="#ccc" font-size="11">POST /bookings/init</text>
+    <text x="330" y="258" fill="#999" font-size="10">• Validate hotel &amp; room exist</text>
+    <text x="330" y="275" fill="#999" font-size="10">• Lock inventory (reserved_count++)</text>
+    <text x="330" y="292" fill="#999" font-size="10">• Calculate total: Σ(price × rooms)</text>
+    <text x="330" y="312" fill="#999" font-size="10">• Status → RESERVED</text>
+  </g>
+
+  <!-- Payment Detail -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="3.6s" fill="freeze"/>
+    <rect x="600" y="190" width="270" height="145" rx="10" fill="rgba(108,92,231,0.15)" stroke="#6c5ce7" stroke-width="1"/>
+    <text x="620" y="215" fill="#a29bfe" font-size="13" font-weight="700">3. Payment &amp; Confirm</text>
+    <text x="620" y="238" fill="#ccc" font-size="11">POST /bookings/{id}/payments</text>
+    <text x="620" y="258" fill="#999" font-size="10">• Create Stripe checkout session</text>
+    <text x="620" y="275" fill="#999" font-size="10">• Redirect user to Stripe</text>
+    <text x="620" y="292" fill="#999" font-size="10">• Webhook confirms payment</text>
+    <text x="620" y="312" fill="#999" font-size="10">• Status → CONFIRMED</text>
+  </g>
+
+  <!-- === STATUS FLOW BAR === -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="4s" fill="freeze"/>
+    <rect x="30" y="360" width="840" height="55" rx="10" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <text x="50" y="385" fill="#999" font-size="11" font-weight="600">STATUS FLOW:</text>
+
+    <!-- Status badges with animated highlight -->
+    <rect x="165" y="370" width="100" height="28" rx="14" fill="#e17055" opacity="0.8"/>
+    <text x="215" y="389" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">RESERVED</text>
+
+    <text x="280" y="389" fill="#666" font-size="14">→</text>
+
+    <rect x="300" y="370" width="120" height="28" rx="14" fill="#6c5ce7" opacity="0.8"/>
+    <text x="360" y="389" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">GUESTS_ADDED</text>
+
+    <text x="435" y="389" fill="#666" font-size="14">→</text>
+
+    <rect x="455" y="370" width="130" height="28" rx="14" fill="#0984e3" opacity="0.8"/>
+    <text x="520" y="389" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">PAYMENT_PENDING</text>
+
+    <text x="600" y="389" fill="#666" font-size="14">→</text>
+
+    <rect x="620" y="370" width="100" height="28" rx="14" fill="#00b894" opacity="0.8"/>
+    <text x="670" y="389" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">CONFIRMED</text>
+
+    <!-- Animated highlight moving across statuses -->
+    <rect x="165" y="370" width="100" height="28" rx="14" fill="none" stroke="#fff" stroke-width="2" opacity="0">
+      <animate attributeName="x" values="165;300;455;620;620" dur="4s" begin="4.5s" repeatCount="indefinite"/>
+      <animate attributeName="width" values="100;120;130;100;100" dur="4s" begin="4.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;0.8;0.8;0.8;0" dur="4s" begin="4.5s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- === CANCELLATION PATH === -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="4.3s" fill="freeze"/>
+    <rect x="30" y="435" width="840" height="95" rx="10" fill="rgba(214,48,49,0.08)" stroke="#d63031" stroke-width="1" stroke-dasharray="4,2"/>
+    <text x="50" y="462" fill="#d63031" font-size="13" font-weight="700">❌ Cancellation Path</text>
+    <text x="50" y="485" fill="#999" font-size="11">POST /bookings/{id}/cancel</text>
+    <text x="50" y="508" fill="#888" font-size="10">• Releases locked inventory (reserved_count--) • Updates status → CANCELLED • Available from RESERVED or CONFIRMED states</text>
+
+    <!-- Cancel badge -->
+    <rect x="750" y="457" width="100" height="28" rx="14" fill="#d63031" opacity="0.8"/>
+    <text x="800" y="476" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">CANCELLED</text>
+    <rect x="750" y="457" width="100" height="28" rx="14" fill="none" stroke="#ff7675" stroke-width="1.5">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+</svg>

@@ -1,0 +1,216 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0c29"/>
+      <stop offset="50%" stop-color="#302b63"/>
+      <stop offset="100%" stop-color="#24243e"/>
+    </linearGradient>
+    <linearGradient id="clientG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e94560"/>
+      <stop offset="100%" stop-color="#c62a71"/>
+    </linearGradient>
+    <linearGradient id="gatewayG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f3460"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <linearGradient id="routerG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#533483"/>
+      <stop offset="100%" stop-color="#0f3460"/>
+    </linearGradient>
+    <linearGradient id="serviceG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e94560"/>
+      <stop offset="100%" stop-color="#533483"/>
+    </linearGradient>
+    <linearGradient id="dataG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <linearGradient id="externalG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6c5ce7"/>
+      <stop offset="100%" stop-color="#a29bfe"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="620" fill="url(#bg)" rx="16"/>
+
+  <!-- Title -->
+  <text x="450" y="40" text-anchor="middle" fill="#fff" font-size="22" font-weight="700" opacity="0">
+    🏗️ System Architecture
+    <animate attributeName="opacity" from="0" to="1" dur="0.8s" fill="freeze"/>
+  </text>
+
+  <!-- === CLIENT LAYER === -->
+  <g filter="shadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.3s" fill="freeze"/>
+    <rect x="30" y="60" width="840" height="80" rx="12" fill="url(#clientG)" opacity="0.9"/>
+    <text x="50" y="90" fill="#fff" font-size="13" font-weight="600">🌐 CLIENT LAYER</text>
+    <rect x="50" y="100" width="120" height="30" rx="8" fill="rgba(255,255,255,0.15)"/>
+    <text x="110" y="120" text-anchor="middle" fill="#fff" font-size="11">Web App</text>
+    <rect x="190" y="100" width="120" height="30" rx="8" fill="rgba(255,255,255,0.15)"/>
+    <text x="250" y="120" text-anchor="middle" fill="#fff" font-size="11">Mobile App</text>
+    <rect x="330" y="100" width="120" height="30" rx="8" fill="rgba(255,255,255,0.15)"/>
+    <text x="390" y="120" text-anchor="middle" fill="#fff" font-size="11">Swagger /docs</text>
+    <rect x="470" y="100" width="120" height="30" rx="8" fill="rgba(255,255,255,0.15)"/>
+    <text x="530" y="120" text-anchor="middle" fill="#fff" font-size="11">ReDoc /redoc</text>
+  </g>
+
+  <!-- Arrow 1: Client → Gateway -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="0.8s" fill="freeze"/>
+    <line x1="450" y1="140" x2="450" y2="160" stroke="#e94560" stroke-width="2.5" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
+    </line>
+    <polygon points="445,158 455,158 450,168" fill="#e94560"/>
+  </g>
+
+  <!-- === API GATEWAY === -->
+  <g filter="shadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.9s" fill="freeze"/>
+    <rect x="30" y="170" width="840" height="70" rx="12" fill="url(#gatewayG)" opacity="0.9" stroke="#0f3460" stroke-width="1"/>
+    <text x="50" y="195" fill="#fff" font-size="13" font-weight="600">🔐 API GATEWAY</text>
+    <rect x="50" y="205" width="180" height="28" rx="8" fill="rgba(255,255,255,0.12)"/>
+    <text x="140" y="224" text-anchor="middle" fill="#a0d2db" font-size="11">FastAPI + CORS Middleware</text>
+    <rect x="250" y="205" width="150" height="28" rx="8" fill="rgba(255,255,255,0.12)"/>
+    <text x="325" y="224" text-anchor="middle" fill="#a0d2db" font-size="11">JWT Auth + RBAC</text>
+    <rect x="420" y="205" width="150" height="28" rx="8" fill="rgba(255,255,255,0.12)"/>
+    <text x="495" y="224" text-anchor="middle" fill="#a0d2db" font-size="11">Exception Handlers</text>
+  </g>
+
+  <!-- Arrow 2: Gateway → Routers -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="1.4s" fill="freeze"/>
+    <line x1="450" y1="240" x2="450" y2="260" stroke="#533483" stroke-width="2.5" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
+    </line>
+    <polygon points="445,258 455,258 450,268" fill="#533483"/>
+  </g>
+
+  <!-- === ROUTER LAYER === -->
+  <g filter="shadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.5s" fill="freeze"/>
+    <rect x="30" y="270" width="840" height="80" rx="12" fill="url(#routerG)" opacity="0.9"/>
+    <text x="50" y="295" fill="#fff" font-size="13" font-weight="600">📡 ROUTER LAYER (8 modules)</text>
+    <!-- Router boxes -->
+    <rect x="50" y="303" width="90" height="36" rx="6" fill="rgba(255,255,255,0.12)"/>
+    <text x="95" y="318" text-anchor="middle" fill="#ddd" font-size="10" font-weight="600">Auth</text>
+    <text x="95" y="332" text-anchor="middle" fill="#999" font-size="8">/auth/*</text>
+
+    <rect x="150" y="303" width="90" height="36" rx="6" fill="rgba(255,255,255,0.12)"/>
+    <text x="195" y="318" text-anchor="middle" fill="#ddd" font-size="10" font-weight="600">Hotels</text>
+    <text x="195" y="332" text-anchor="middle" fill="#999" font-size="8">/admin/hotels/*</text>
+
+    <rect x="250" y="303" width="90" height="36" rx="6" fill="rgba(255,255,255,0.12)"/>
+    <text x="295" y="318" text-anchor="middle" fill="#ddd" font-size="10" font-weight="600">Rooms</text>
+    <text x="295" y="332" text-anchor="middle" fill="#999" font-size="8">/admin/.../rooms/*</text>
+
+    <rect x="350" y="303" width="90" height="36" rx="6" fill="rgba(255,255,255,0.12)"/>
+    <text x="395" y="318" text-anchor="middle" fill="#ddd" font-size="10" font-weight="600">Bookings</text>
+    <text x="395" y="332" text-anchor="middle" fill="#999" font-size="8">/bookings/*</text>
+
+    <rect x="450" y="303" width="90" height="36" rx="6" fill="rgba(255,255,255,0.12)"/>
+    <text x="495" y="318" text-anchor="middle" fill="#ddd" font-size="10" font-weight="600">Inventory</text>
+    <text x="495" y="332" text-anchor="middle" fill="#999" font-size="8">/admin/inventory/*</text>
+
+    <rect x="550" y="303" width="90" height="36" rx="6" fill="rgba(255,255,255,0.12)"/>
+    <text x="595" y="318" text-anchor="middle" fill="#ddd" font-size="10" font-weight="600">Browse</text>
+    <text x="595" y="332" text-anchor="middle" fill="#999" font-size="8">/hotels/*</text>
+
+    <rect x="650" y="303" width="90" height="36" rx="6" fill="rgba(255,255,255,0.12)"/>
+    <text x="695" y="318" text-anchor="middle" fill="#ddd" font-size="10" font-weight="600">Users</text>
+    <text x="695" y="332" text-anchor="middle" fill="#999" font-size="8">/users/*</text>
+
+    <rect x="750" y="303" width="110" height="36" rx="6" fill="rgba(255,255,255,0.12)"/>
+    <text x="805" y="318" text-anchor="middle" fill="#ddd" font-size="10" font-weight="600">Webhooks</text>
+    <text x="805" y="332" text-anchor="middle" fill="#999" font-size="8">/webhooks/*</text>
+  </g>
+
+  <!-- Arrow 3: Routers → Services -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="2s" fill="freeze"/>
+    <line x1="450" y1="350" x2="450" y2="370" stroke="#e94560" stroke-width="2.5" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
+    </line>
+    <polygon points="445,368 455,368 450,378" fill="#e94560"/>
+  </g>
+
+  <!-- === SERVICE LAYER === -->
+  <g filter="shadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.1s" fill="freeze"/>
+    <rect x="30" y="380" width="630" height="80" rx="12" fill="url(#serviceG)" opacity="0.9"/>
+    <text x="50" y="405" fill="#fff" font-size="13" font-weight="600">⚙️ SERVICE LAYER (Business Logic)</text>
+    <rect x="50" y="415" width="110" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+    <text x="105" y="434" text-anchor="middle" fill="#fff" font-size="10">AuthService</text>
+    <rect x="170" y="415" width="110" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+    <text x="225" y="434" text-anchor="middle" fill="#fff" font-size="10">HotelService</text>
+    <rect x="290" y="415" width="110" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+    <text x="345" y="434" text-anchor="middle" fill="#fff" font-size="10">BookingService</text>
+    <rect x="410" y="415" width="110" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+    <text x="465" y="434" text-anchor="middle" fill="#fff" font-size="10">InventoryService</text>
+    <rect x="530" y="415" width="120" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+    <text x="590" y="434" text-anchor="middle" fill="#fff" font-size="10">CheckoutService</text>
+  </g>
+
+  <!-- === EXTERNAL: Stripe === -->
+  <g filter="shadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.1s" fill="freeze"/>
+    <rect x="690" y="380" width="180" height="80" rx="12" fill="url(#externalG)" opacity="0.9"/>
+    <text x="780" y="405" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">🌍 EXTERNAL</text>
+    <rect x="710" y="415" width="140" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+    <text x="780" y="434" text-anchor="middle" fill="#fff" font-size="11">💳 Stripe API</text>
+  </g>
+
+  <!-- Arrow: Service → Stripe -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="2.3s" fill="freeze"/>
+    <line x1="660" y1="430" x2="708" y2="430" stroke="#a29bfe" stroke-width="2" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
+    </line>
+    <polygon points="706,426 706,434 714,430" fill="#a29bfe"/>
+  </g>
+
+  <!-- Arrow 4: Services → Data -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="2.6s" fill="freeze"/>
+    <line x1="345" y1="460" x2="345" y2="480" stroke="#00b894" stroke-width="2.5" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1s" repeatCount="indefinite"/>
+    </line>
+    <polygon points="340,478 350,478 345,488" fill="#00b894"/>
+  </g>
+
+  <!-- === DATA LAYER === -->
+  <g filter="shadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.7s" fill="freeze"/>
+    <rect x="30" y="490" width="840" height="110" rx="12" fill="url(#dataG)" opacity="0.9" stroke="#1a1a2e" stroke-width="1"/>
+    <text x="50" y="520" fill="#fff" font-size="13" font-weight="600">💾 DATA LAYER</text>
+
+    <rect x="50" y="530" width="200" height="55" rx="8" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <text x="150" y="552" text-anchor="middle" fill="#74b9ff" font-size="12" font-weight="600">SQLAlchemy 2.0</text>
+    <text x="150" y="572" text-anchor="middle" fill="#999" font-size="10">Async ORM + asyncpg</text>
+
+    <rect x="280" y="530" width="200" height="55" rx="8" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <text x="380" y="552" text-anchor="middle" fill="#55efc4" font-size="12" font-weight="600">PostgreSQL 16</text>
+    <text x="380" y="572" text-anchor="middle" fill="#999" font-size="10">Primary Database</text>
+
+    <rect x="510" y="530" width="170" height="55" rx="8" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <text x="595" y="552" text-anchor="middle" fill="#ffeaa7" font-size="12" font-weight="600">Alembic</text>
+    <text x="595" y="572" text-anchor="middle" fill="#999" font-size="10">Schema Migrations</text>
+
+    <rect x="710" y="530" width="150" height="55" rx="8" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <text x="785" y="552" text-anchor="middle" fill="#fd79a8" font-size="12" font-weight="600">Pydantic v2</text>
+    <text x="785" y="572" text-anchor="middle" fill="#999" font-size="10">Validation + DTOs</text>
+
+    <!-- ORM→DB arrow -->
+    <line x1="250" y1="557" x2="278" y2="557" stroke="#55efc4" stroke-width="1.5" stroke-dasharray="4,2">
+      <animate attributeName="stroke-dashoffset" from="12" to="0" dur="0.8s" repeatCount="indefinite"/>
+    </line>
+    <polygon points="276,554 276,560 282,557" fill="#55efc4"/>
+  </g>
+</svg>
