@@ -1,0 +1,45 @@
+# Version control
+.git
+.gitignore
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Documentation
+docs/
+README.md
+
+# CI/CD
+.github/
+
+# Environment
+.env
+.env.*
+
+# Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.yml
+docker-compose.*.yml

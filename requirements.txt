@@ -30,3 +30,7 @@ pytest-asyncio==0.23.5
 
 # Development
 python-dotenv==1.0.1
+
+# Code Quality (CI)
+ruff>=0.3.0
+pytest-cov>=4.1.0

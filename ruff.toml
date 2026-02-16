@@ -1,0 +1,31 @@
+# Ruff configuration for AirBnb FastAPI Backend
+# https://docs.astral.sh/ruff/configuration/
+
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import sorting)
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults (FastAPI uses Depends())
+    "B904",   # raise-without-from-inside-except
+    "UP007",  # use X | Y instead of Union (keeping for compatibility)
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["B", "SIM"]
+"alembic/*" = ["E", "W", "F", "UP"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
