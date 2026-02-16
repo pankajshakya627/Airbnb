@@ -1,0 +1,394 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 920" font-family="'Segoe UI', 'SF Pro Display', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bgER" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#0a0a1a"/>
+      <stop offset="100%" stop-color="#1a1a3e"/>
+    </linearGradient>
+    <!-- Entity header gradients -->
+    <linearGradient id="hUser" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e94560"/><stop offset="100%" stop-color="#c62a71"/>
+    </linearGradient>
+    <linearGradient id="hHotel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0f3460"/><stop offset="100%" stop-color="#1a5276"/>
+    </linearGradient>
+    <linearGradient id="hRoom" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#533483"/><stop offset="100%" stop-color="#6c5ce7"/>
+    </linearGradient>
+    <linearGradient id="hInv" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00b894"/><stop offset="100%" stop-color="#00cec9"/>
+    </linearGradient>
+    <linearGradient id="hBooking" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e17055"/><stop offset="100%" stop-color="#d63031"/>
+    </linearGradient>
+    <linearGradient id="hGuest" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fdcb6e"/><stop offset="100%" stop-color="#f39c12"/>
+    </linearGradient>
+    <linearGradient id="hJunction" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#636e72"/><stop offset="100%" stop-color="#2d3436"/>
+    </linearGradient>
+    <filter id="cardShadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+    <filter id="glowLine">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="920" fill="url(#bgER)" rx="0"/>
+  <!-- Grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <rect width="40" height="40" fill="none"/>
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="920" fill="url(#grid)"/>
+
+  <!-- Title -->
+  <text x="640" y="42" text-anchor="middle" fill="#fff" font-size="24" font-weight="700" letter-spacing="1" opacity="0">
+    🗄️  Entity Relationship Diagram
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" fill="freeze"/>
+  </text>
+  <text x="640" y="62" text-anchor="middle" fill="#888" font-size="12" opacity="0">
+    PostgreSQL 16 • SQLAlchemy 2.0 Async • 7 Tables + 1 Junction Table
+    <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.3s" fill="freeze"/>
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- ENTITY: app_user (top-left) -->
+  <!-- ============================================================ -->
+  <g filter="cardShadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.4s" fill="freeze"/>
+    <rect x="30" y="85" width="270" height="268" rx="10" fill="#12122a" stroke="rgba(233,69,96,0.4)" stroke-width="1.5"/>
+    <!-- Header -->
+    <rect x="30" y="85" width="270" height="36" rx="10" fill="url(#hUser)"/>
+    <rect x="30" y="105" width="270" height="16" fill="url(#hUser)"/>
+    <text x="46" y="108" fill="#fff" font-size="14" font-weight="700">👤  app_user</text>
+    <text x="270" y="108" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9">User</text>
+    <!-- Columns -->
+    <g font-size="11">
+      <text x="46" y="140" fill="#e94560" font-weight="700">🔑 id</text><text x="220" y="140" fill="#888" text-anchor="end">INTEGER</text><text x="285" y="140" fill="#555" text-anchor="end" font-size="9">PK</text>
+      <text x="46" y="160" fill="#ddd">email</text><text x="220" y="160" fill="#888" text-anchor="end">VARCHAR(255)</text><text x="285" y="160" fill="#e94560" text-anchor="end" font-size="9">UQ, IX</text>
+      <text x="46" y="180" fill="#ddd">password</text><text x="220" y="180" fill="#888" text-anchor="end">VARCHAR(255)</text><text x="285" y="180" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="46" y="200" fill="#ddd">name</text><text x="220" y="200" fill="#888" text-anchor="end">VARCHAR(255)</text>
+      <text x="46" y="220" fill="#ddd">date_of_birth</text><text x="220" y="220" fill="#888" text-anchor="end">DATE</text>
+      <text x="46" y="240" fill="#ddd">gender</text><text x="220" y="240" fill="#888" text-anchor="end">ENUM(Gender)</text>
+      <text x="46" y="260" fill="#ddd">roles</text><text x="220" y="260" fill="#888" text-anchor="end">ARRAY(VARCHAR)</text><text x="285" y="260" fill="#555" text-anchor="end" font-size="9">['GUEST']</text>
+    </g>
+    <!-- Separator -->
+    <line x1="42" y1="270" x2="288" y2="270" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="46" y="288" fill="#666" font-size="9" font-style="italic">↳ has_role(role) → bool</text>
+    <text x="46" y="305" fill="#666" font-size="9" font-style="italic">Rels: hotels[], bookings[], guests[]</text>
+    <!-- Animated border -->
+    <rect x="30" y="85" width="270" height="268" rx="10" fill="none" stroke="#e94560" stroke-width="1" opacity="0">
+      <animate attributeName="opacity" values="0;0.5;0" dur="3s" begin="1s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- ENTITY: hotel (top-center) -->
+  <!-- ============================================================ -->
+  <g filter="cardShadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.7s" fill="freeze"/>
+    <rect x="380" y="85" width="290" height="348" rx="10" fill="#12122a" stroke="rgba(15,52,96,0.5)" stroke-width="1.5"/>
+    <!-- Header -->
+    <rect x="380" y="85" width="290" height="36" rx="10" fill="url(#hHotel)"/>
+    <rect x="380" y="105" width="290" height="16" fill="url(#hHotel)"/>
+    <text x="396" y="108" fill="#fff" font-size="14" font-weight="700">🏨  hotel</text>
+    <text x="640" y="108" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9">Hotel</text>
+    <!-- Columns -->
+    <g font-size="11">
+      <text x="396" y="140" fill="#74b9ff" font-weight="700">🔑 id</text><text x="590" y="140" fill="#888" text-anchor="end">INTEGER</text><text x="655" y="140" fill="#555" text-anchor="end" font-size="9">PK</text>
+      <text x="396" y="160" fill="#ddd">name</text><text x="590" y="160" fill="#888" text-anchor="end">VARCHAR(255)</text><text x="655" y="160" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="396" y="180" fill="#ddd">city</text><text x="590" y="180" fill="#888" text-anchor="end">VARCHAR(255)</text><text x="655" y="180" fill="#74b9ff" text-anchor="end" font-size="9">IX</text>
+      <text x="396" y="200" fill="#ddd">photos</text><text x="590" y="200" fill="#888" text-anchor="end">ARRAY(VARCHAR)</text>
+      <text x="396" y="220" fill="#ddd">amenities</text><text x="590" y="220" fill="#888" text-anchor="end">ARRAY(VARCHAR)</text>
+      <text x="396" y="240" fill="#ddd">contact_phone</text><text x="590" y="240" fill="#888" text-anchor="end">VARCHAR(50)</text>
+      <text x="396" y="260" fill="#ddd">contact_email</text><text x="590" y="260" fill="#888" text-anchor="end">VARCHAR(255)</text>
+      <text x="396" y="280" fill="#ddd">contact_address</text><text x="590" y="280" fill="#888" text-anchor="end">VARCHAR(500)</text>
+      <text x="396" y="300" fill="#ddd">active</text><text x="590" y="300" fill="#888" text-anchor="end">BOOLEAN</text><text x="655" y="300" fill="#555" text-anchor="end" font-size="9">false</text>
+      <text x="396" y="320" fill="#ddd">created_at</text><text x="590" y="320" fill="#888" text-anchor="end">TIMESTAMP</text>
+      <text x="396" y="340" fill="#ddd">updated_at</text><text x="590" y="340" fill="#888" text-anchor="end">TIMESTAMP</text>
+      <line x1="392" y1="350" x2="658" y2="350" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="396" y="368" fill="#ff7675">🔗 owner_id</text><text x="590" y="368" fill="#888" text-anchor="end">INTEGER</text><text x="655" y="368" fill="#e94560" text-anchor="end" font-size="9">FK→user</text>
+    </g>
+    <text x="396" y="392" fill="#666" font-size="9" font-style="italic">Rels: owner(User), rooms[]</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- ENTITY: room (top-right) -->
+  <!-- ============================================================ -->
+  <g filter="cardShadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1s" fill="freeze"/>
+    <rect x="750" y="85" width="270" height="310" rx="10" fill="#12122a" stroke="rgba(83,52,131,0.5)" stroke-width="1.5"/>
+    <!-- Header -->
+    <rect x="750" y="85" width="270" height="36" rx="10" fill="url(#hRoom)"/>
+    <rect x="750" y="105" width="270" height="16" fill="url(#hRoom)"/>
+    <text x="766" y="108" fill="#fff" font-size="14" font-weight="700">🛏️  room</text>
+    <text x="990" y="108" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9">Room</text>
+    <!-- Columns -->
+    <g font-size="11">
+      <text x="766" y="140" fill="#d4a5ff" font-weight="700">🔑 id</text><text x="940" y="140" fill="#888" text-anchor="end">INTEGER</text><text x="1005" y="140" fill="#555" text-anchor="end" font-size="9">PK</text>
+      <text x="766" y="160" fill="#ddd">type</text><text x="940" y="160" fill="#888" text-anchor="end">VARCHAR(100)</text><text x="1005" y="160" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="766" y="180" fill="#ddd">base_price</text><text x="940" y="180" fill="#888" text-anchor="end">NUMERIC(10,2)</text><text x="1005" y="180" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="766" y="200" fill="#ddd">photos</text><text x="940" y="200" fill="#888" text-anchor="end">ARRAY(VARCHAR)</text>
+      <text x="766" y="220" fill="#ddd">amenities</text><text x="940" y="220" fill="#888" text-anchor="end">ARRAY(VARCHAR)</text>
+      <text x="766" y="240" fill="#ddd">total_count</text><text x="940" y="240" fill="#888" text-anchor="end">INTEGER</text><text x="1005" y="240" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="766" y="260" fill="#ddd">capacity</text><text x="940" y="260" fill="#888" text-anchor="end">INTEGER</text><text x="1005" y="260" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="766" y="280" fill="#ddd">created_at / updated_at</text><text x="940" y="280" fill="#888" text-anchor="end">TIMESTAMP</text>
+      <line x1="762" y1="290" x2="1008" y2="290" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="766" y="308" fill="#ff7675">🔗 hotel_id</text><text x="940" y="308" fill="#888" text-anchor="end">INTEGER</text><text x="1005" y="308" fill="#0f3460" text-anchor="end" font-size="9">FK→hotel</text>
+    </g>
+    <text x="766" y="332" fill="#666" font-size="9" font-style="italic">Rels: hotel(Hotel), inventories[]</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- ENTITY: inventory (middle-right, large) -->
+  <!-- ============================================================ -->
+  <g filter="cardShadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.3s" fill="freeze"/>
+    <rect x="750" y="430" width="290" height="390" rx="10" fill="#12122a" stroke="rgba(0,184,148,0.4)" stroke-width="1.5"/>
+    <!-- Header -->
+    <rect x="750" y="430" width="290" height="36" rx="10" fill="url(#hInv)"/>
+    <rect x="750" y="450" width="290" height="16" fill="url(#hInv)"/>
+    <text x="766" y="453" fill="#fff" font-size="14" font-weight="700">📊  inventory</text>
+    <text x="1010" y="453" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9">Inventory</text>
+    <!-- Columns -->
+    <g font-size="11">
+      <text x="766" y="485" fill="#55efc4" font-weight="700">🔑 id</text><text x="960" y="485" fill="#888" text-anchor="end">INTEGER</text><text x="1025" y="485" fill="#555" text-anchor="end" font-size="9">PK</text>
+      <text x="766" y="505" fill="#ddd">date</text><text x="960" y="505" fill="#888" text-anchor="end">DATE</text><text x="1025" y="505" fill="#55efc4" text-anchor="end" font-size="9">IX</text>
+      <text x="766" y="525" fill="#ddd">book_count</text><text x="960" y="525" fill="#888" text-anchor="end">INTEGER</text><text x="1025" y="525" fill="#555" text-anchor="end" font-size="9">0</text>
+      <text x="766" y="545" fill="#ddd">reserved_count</text><text x="960" y="545" fill="#888" text-anchor="end">INTEGER</text><text x="1025" y="545" fill="#555" text-anchor="end" font-size="9">0</text>
+      <text x="766" y="565" fill="#ddd">total_count</text><text x="960" y="565" fill="#888" text-anchor="end">INTEGER</text><text x="1025" y="565" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="766" y="585" fill="#ddd">surge_factor</text><text x="960" y="585" fill="#888" text-anchor="end">NUMERIC(5,2)</text><text x="1025" y="585" fill="#555" text-anchor="end" font-size="9">1.00</text>
+      <text x="766" y="605" fill="#ddd">price</text><text x="960" y="605" fill="#888" text-anchor="end">NUMERIC(10,2)</text><text x="1025" y="605" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="766" y="625" fill="#ddd">city</text><text x="960" y="625" fill="#888" text-anchor="end">VARCHAR(255)</text><text x="1025" y="625" fill="#55efc4" text-anchor="end" font-size="9">IX</text>
+      <text x="766" y="645" fill="#ddd">closed</text><text x="960" y="645" fill="#888" text-anchor="end">BOOLEAN</text><text x="1025" y="645" fill="#555" text-anchor="end" font-size="9">false</text>
+      <text x="766" y="665" fill="#ddd">created_at / updated_at</text><text x="960" y="665" fill="#888" text-anchor="end">TIMESTAMP</text>
+      <line x1="762" y1="675" x2="1028" y2="675" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="766" y="693" fill="#ff7675">🔗 hotel_id</text><text x="960" y="693" fill="#888" text-anchor="end">INTEGER</text><text x="1025" y="693" fill="#0f3460" text-anchor="end" font-size="9">FK→hotel</text>
+      <text x="766" y="713" fill="#ff7675">🔗 room_id</text><text x="960" y="713" fill="#888" text-anchor="end">INTEGER</text><text x="1025" y="713" fill="#533483" text-anchor="end" font-size="9">FK→room</text>
+    </g>
+    <line x1="762" y1="723" x2="1028" y2="723" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="766" y="740" fill="#55efc4" font-size="9">🔒 UNIQUE(hotel_id, room_id, date)</text>
+    <text x="766" y="757" fill="#666" font-size="9" font-style="italic">↳ available_count → total - book - reserved</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- ENTITY: booking (bottom-left) -->
+  <!-- ============================================================ -->
+  <g filter="cardShadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.6s" fill="freeze"/>
+    <rect x="30" y="430" width="290" height="370" rx="10" fill="#12122a" stroke="rgba(225,112,85,0.4)" stroke-width="1.5"/>
+    <!-- Header -->
+    <rect x="30" y="430" width="290" height="36" rx="10" fill="url(#hBooking)"/>
+    <rect x="30" y="450" width="290" height="16" fill="url(#hBooking)"/>
+    <text x="46" y="453" fill="#fff" font-size="14" font-weight="700">📋  booking</text>
+    <text x="290" y="453" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9">Booking</text>
+    <!-- Columns -->
+    <g font-size="11">
+      <text x="46" y="485" fill="#fab1a0" font-weight="700">🔑 id</text><text x="240" y="485" fill="#888" text-anchor="end">INTEGER</text><text x="305" y="485" fill="#555" text-anchor="end" font-size="9">PK</text>
+      <text x="46" y="505" fill="#ddd">rooms_count</text><text x="240" y="505" fill="#888" text-anchor="end">INTEGER</text><text x="305" y="505" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="46" y="525" fill="#ddd">check_in_date</text><text x="240" y="525" fill="#888" text-anchor="end">DATE</text><text x="305" y="525" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="46" y="545" fill="#ddd">check_out_date</text><text x="240" y="545" fill="#888" text-anchor="end">DATE</text><text x="305" y="545" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="46" y="565" fill="#ddd">booking_status</text><text x="240" y="565" fill="#888" text-anchor="end">ENUM</text><text x="305" y="565" fill="#e17055" text-anchor="end" font-size="9">BookingStatus</text>
+      <text x="46" y="585" fill="#ddd">amount</text><text x="240" y="585" fill="#888" text-anchor="end">NUMERIC(10,2)</text><text x="305" y="585" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="46" y="605" fill="#ddd">payment_session_id</text><text x="240" y="605" fill="#888" text-anchor="end">VARCHAR(255)</text><text x="305" y="605" fill="#e17055" text-anchor="end" font-size="9">UQ</text>
+      <text x="46" y="625" fill="#ddd">created_at / updated_at</text><text x="240" y="625" fill="#888" text-anchor="end">TIMESTAMP</text>
+      <line x1="42" y1="635" x2="308" y2="635" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="46" y="653" fill="#ff7675">🔗 hotel_id</text><text x="240" y="653" fill="#888" text-anchor="end">INTEGER</text><text x="305" y="653" fill="#0f3460" text-anchor="end" font-size="9">FK→hotel</text>
+      <text x="46" y="673" fill="#ff7675">🔗 room_id</text><text x="240" y="673" fill="#888" text-anchor="end">INTEGER</text><text x="305" y="673" fill="#533483" text-anchor="end" font-size="9">FK→room</text>
+      <text x="46" y="693" fill="#ff7675">🔗 user_id</text><text x="240" y="693" fill="#888" text-anchor="end">INTEGER</text><text x="305" y="693" fill="#e94560" text-anchor="end" font-size="9">FK→user</text>
+    </g>
+    <text x="46" y="720" fill="#666" font-size="9" font-style="italic">Rels: hotel, room, user, guests[] (M2M)</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- ENTITY: guest (bottom-center-left) -->
+  <!-- ============================================================ -->
+  <g filter="cardShadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.9s" fill="freeze"/>
+    <rect x="380" y="540" width="250" height="200" rx="10" fill="#12122a" stroke="rgba(253,203,110,0.4)" stroke-width="1.5"/>
+    <!-- Header -->
+    <rect x="380" y="540" width="250" height="36" rx="10" fill="url(#hGuest)"/>
+    <rect x="380" y="560" width="250" height="16" fill="url(#hGuest)"/>
+    <text x="396" y="563" fill="#2d3436" font-size="14" font-weight="700">👤  guest</text>
+    <text x="600" y="563" text-anchor="end" fill="rgba(0,0,0,0.4)" font-size="9">Guest</text>
+    <!-- Columns -->
+    <g font-size="11">
+      <text x="396" y="595" fill="#ffeaa7" font-weight="700">🔑 id</text><text x="555" y="595" fill="#888" text-anchor="end">INTEGER</text><text x="615" y="595" fill="#555" text-anchor="end" font-size="9">PK</text>
+      <text x="396" y="615" fill="#ddd">name</text><text x="555" y="615" fill="#888" text-anchor="end">VARCHAR(255)</text><text x="615" y="615" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="396" y="635" fill="#ddd">gender</text><text x="555" y="635" fill="#888" text-anchor="end">ENUM(Gender)</text><text x="615" y="635" fill="#555" text-anchor="end" font-size="9">NN</text>
+      <text x="396" y="655" fill="#ddd">age</text><text x="555" y="655" fill="#888" text-anchor="end">INTEGER</text>
+      <line x1="392" y1="665" x2="618" y2="665" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="396" y="683" fill="#ff7675">🔗 user_id</text><text x="555" y="683" fill="#888" text-anchor="end">INTEGER</text><text x="615" y="683" fill="#e94560" text-anchor="end" font-size="9">FK→user</text>
+    </g>
+    <text x="396" y="710" fill="#666" font-size="9" font-style="italic">Rels: user(User), bookings[] (M2M)</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- JUNCTION: booking_guest (bottom-center) -->
+  <!-- ============================================================ -->
+  <g filter="cardShadow" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.2s" fill="freeze"/>
+    <rect x="380" y="770" width="250" height="120" rx="10" fill="#12122a" stroke="rgba(99,110,114,0.4)" stroke-width="1.5" stroke-dasharray="5,3"/>
+    <!-- Header -->
+    <rect x="380" y="770" width="250" height="36" rx="10" fill="url(#hJunction)"/>
+    <rect x="380" y="790" width="250" height="16" fill="url(#hJunction)"/>
+    <text x="396" y="793" fill="#dfe6e9" font-size="13" font-weight="700">🔗  booking_guest</text>
+    <text x="600" y="793" text-anchor="end" fill="rgba(255,255,255,0.4)" font-size="9">M:N Junction</text>
+    <!-- Columns -->
+    <g font-size="11">
+      <text x="396" y="828" fill="#ff7675">🔗 booking_id</text><text x="555" y="828" fill="#888" text-anchor="end">INTEGER</text><text x="615" y="828" fill="#e17055" text-anchor="end" font-size="9">PK, FK</text>
+      <text x="396" y="848" fill="#ff7675">🔗 guest_id</text><text x="555" y="848" fill="#888" text-anchor="end">INTEGER</text><text x="615" y="848" fill="#fdcb6e" text-anchor="end" font-size="9">PK, FK</text>
+    </g>
+    <text x="396" y="875" fill="#636e72" font-size="9">Composite PK: (booking_id, guest_id)</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- ENUM LEGEND (far right) -->
+  <!-- ============================================================ -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.5s" fill="freeze"/>
+    <rect x="1090" y="85" width="160" height="228" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="1110" y="110" fill="#999" font-size="12" font-weight="700">📋 Enums</text>
+
+    <text x="1110" y="135" fill="#d4a5ff" font-size="10" font-weight="600">BookingStatus</text>
+    <text x="1110" y="150" fill="#888" font-size="9">RESERVED</text>
+    <text x="1110" y="163" fill="#888" font-size="9">GUESTS_ADDED</text>
+    <text x="1110" y="176" fill="#888" font-size="9">PAYMENTS_PENDING</text>
+    <text x="1110" y="189" fill="#888" font-size="9">CONFIRMED</text>
+    <text x="1110" y="202" fill="#888" font-size="9">CANCELLED / EXPIRED</text>
+
+    <line x1="1106" y1="212" x2="1234" y2="212" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="1110" y="230" fill="#e94560" font-size="10" font-weight="600">Role</text>
+    <text x="1110" y="245" fill="#888" font-size="9">GUEST</text>
+    <text x="1110" y="258" fill="#888" font-size="9">HOTEL_MANAGER</text>
+
+    <line x1="1106" y1="268" x2="1234" y2="268" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="1110" y="286" fill="#ffeaa7" font-size="10" font-weight="600">Gender</text>
+    <text x="1110" y="301" fill="#888" font-size="9">MALE / FEMALE</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- RELATIONSHIP LINES (animated) -->
+  <!-- ============================================================ -->
+
+  <!-- User 1──M Hotel (owner_id) -->
+  <g filter="glowLine" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="2.8s" fill="freeze"/>
+    <path d="M 300 220 Q 340 220 340 190 Q 340 160 380 160" fill="none" stroke="#e94560" stroke-width="2" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+    <circle cx="300" cy="220" r="3" fill="#e94560"/>
+    <text x="302" y="212" fill="#e94560" font-size="8" font-weight="600">1</text>
+    <circle cx="380" cy="160" r="3" fill="#e94560"/>
+    <text x="371" y="152" fill="#e94560" font-size="8" font-weight="600">M</text>
+  </g>
+
+  <!-- Hotel 1──M Room (hotel_id) -->
+  <g filter="glowLine" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="3s" fill="freeze"/>
+    <line x1="670" y1="308" x2="750" y2="308" stroke="#0f3460" stroke-width="2" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1.5s" repeatCount="indefinite"/>
+    </line>
+    <circle cx="670" cy="308" r="3" fill="#0f3460"/>
+    <text x="672" y="300" fill="#74b9ff" font-size="8" font-weight="600">1</text>
+    <circle cx="750" cy="308" r="3" fill="#0f3460"/>
+    <text x="741" y="300" fill="#74b9ff" font-size="8" font-weight="600">M</text>
+  </g>
+
+  <!-- Room 1──M Inventory (room_id) -->
+  <g filter="glowLine" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="3.2s" fill="freeze"/>
+    <line x1="885" y1="395" x2="885" y2="430" stroke="#533483" stroke-width="2" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1.5s" repeatCount="indefinite"/>
+    </line>
+    <circle cx="885" cy="395" r="3" fill="#533483"/>
+    <text x="877" y="390" fill="#d4a5ff" font-size="8" font-weight="600">1</text>
+    <circle cx="885" cy="430" r="3" fill="#533483"/>
+    <text x="877" y="445" fill="#d4a5ff" font-size="8" font-weight="600">M</text>
+  </g>
+
+  <!-- Hotel 1──M Inventory (hotel_id) -->
+  <g filter="glowLine" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="3.2s" fill="freeze"/>
+    <path d="M 670 368 Q 710 368 710 530 Q 710 693 750 693" fill="none" stroke="#0f3460" stroke-width="2" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="2s" repeatCount="indefinite"/>
+    </path>
+    <circle cx="670" cy="368" r="3" fill="#0f3460"/>
+    <text x="675" y="360" fill="#74b9ff" font-size="8" font-weight="600">1</text>
+    <circle cx="750" cy="693" r="3" fill="#0f3460"/>
+    <text x="741" y="685" fill="#74b9ff" font-size="8" font-weight="600">M</text>
+  </g>
+
+  <!-- User 1──M Booking (user_id) -->
+  <g filter="glowLine" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="3.4s" fill="freeze"/>
+    <line x1="165" y1="353" x2="165" y2="430" stroke="#e94560" stroke-width="2" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1.5s" repeatCount="indefinite"/>
+    </line>
+    <circle cx="165" cy="353" r="3" fill="#e94560"/>
+    <text x="157" y="348" fill="#e94560" font-size="8" font-weight="600">1</text>
+    <circle cx="165" cy="430" r="3" fill="#e94560"/>
+    <text x="157" y="445" fill="#e94560" font-size="8" font-weight="600">M</text>
+  </g>
+
+  <!-- User 1──M Guest (user_id) -->
+  <g filter="glowLine" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="3.4s" fill="freeze"/>
+    <path d="M 300 260 Q 340 260 340 470 Q 340 683 380 683" fill="none" stroke="#e94560" stroke-width="2" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="2s" repeatCount="indefinite"/>
+    </path>
+    <circle cx="300" cy="260" r="3" fill="#e94560"/>
+    <text x="302" y="254" fill="#e94560" font-size="8" font-weight="600">1</text>
+    <circle cx="380" cy="683" r="3" fill="#e94560"/>
+    <text x="371" y="675" fill="#e94560" font-size="8" font-weight="600">M</text>
+  </g>
+
+  <!-- Booking M──M Guest via booking_guest -->
+  <g filter="glowLine" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="3.6s" fill="freeze"/>
+    <!-- Booking → junction -->
+    <path d="M 320 720 Q 320 830 380 830" fill="none" stroke="#e17055" stroke-width="2" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+    <circle cx="320" cy="720" r="3" fill="#e17055"/>
+    <text x="322" y="732" fill="#e17055" font-size="8" font-weight="600">M</text>
+
+    <!-- Guest → junction -->
+    <path d="M 505 740 Q 505 750 505 770" fill="none" stroke="#fdcb6e" stroke-width="2" stroke-dasharray="6,3">
+      <animate attributeName="stroke-dashoffset" from="18" to="0" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+    <circle cx="505" cy="740" r="3" fill="#fdcb6e"/>
+    <text x="508" y="748" fill="#fdcb6e" font-size="8" font-weight="600">M</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- LEGEND (bottom-right) -->
+  <!-- ============================================================ -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="3.8s" fill="freeze"/>
+    <rect x="1090" y="340" width="160" height="170" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="1110" y="365" fill="#999" font-size="12" font-weight="700">🔑 Legend</text>
+
+    <text x="1110" y="390" fill="#e94560" font-size="10">🔑</text><text x="1130" y="390" fill="#999" font-size="10">Primary Key</text>
+    <text x="1110" y="410" fill="#ff7675" font-size="10">🔗</text><text x="1130" y="410" fill="#999" font-size="10">Foreign Key</text>
+    <text x="1115" y="430" fill="#999" font-size="10">PK</text><text x="1140" y="430" fill="#888" font-size="10">Primary Key</text>
+    <text x="1115" y="448" fill="#999" font-size="10">FK</text><text x="1140" y="448" fill="#888" font-size="10">Foreign Key</text>
+    <text x="1115" y="466" fill="#999" font-size="10">UQ</text><text x="1140" y="466" fill="#888" font-size="10">Unique</text>
+    <text x="1115" y="484" fill="#999" font-size="10">IX</text><text x="1140" y="484" fill="#888" font-size="10">Indexed</text>
+    <text x="1115" y="502" fill="#999" font-size="10">NN</text><text x="1140" y="502" fill="#888" font-size="10">Not Null</text>
+  </g>
+
+  <!-- Cardinality reference -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="3.8s" fill="freeze"/>
+    <rect x="1090" y="530" width="160" height="75" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="1110" y="555" fill="#999" font-size="12" font-weight="700">↔️ Cardinality</text>
+    <text x="1115" y="578" fill="#888" font-size="10">1 ─── M   One to Many</text>
+    <text x="1115" y="596" fill="#888" font-size="10">M ─── M   Many to Many</text>
+  </g>
+</svg>

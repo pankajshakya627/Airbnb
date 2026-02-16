@@ -68,82 +68,9 @@ A robust, production-ready Hotel Management & Booking System backend built with 
 
 ## 🗄️ Database Schema
 
-```mermaid
-erDiagram
-    USERS ||--o{ BOOKINGS : creates
-    USERS ||--o{ HOTELS : owns
-    USERS ||--o{ GUESTS : manages
-    HOTELS ||--o{ ROOMS : contains
-    HOTELS ||--o{ INVENTORY : tracks
-    ROOMS ||--o{ INVENTORY : has
-    ROOMS ||--o{ BOOKINGS : reserved_in
-    BOOKINGS }o--o{ GUESTS : includes
-
-    USERS {
-        int id PK
-        string email UK
-        string password
-        string name
-        enum gender
-        date date_of_birth
-        array roles
-    }
-
-    HOTELS {
-        int id PK
-        string name
-        string city
-        array photos
-        array amenities
-        json contact_info
-        bool active
-        int owner_id FK
-    }
-
-    ROOMS {
-        int id PK
-        string type
-        decimal base_price
-        array photos
-        array amenities
-        int total_count
-        int capacity
-        int hotel_id FK
-    }
-
-    INVENTORY {
-        int id PK
-        date date
-        int book_count
-        int reserved_count
-        int total_count
-        decimal surge_factor
-        decimal price
-        bool closed
-        int hotel_id FK
-        int room_id FK
-    }
-
-    BOOKINGS {
-        int id PK
-        int rooms_count
-        date check_in_date
-        date check_out_date
-        enum booking_status
-        decimal amount
-        int hotel_id FK
-        int room_id FK
-        int user_id FK
-    }
-
-    GUESTS {
-        int id PK
-        string name
-        enum gender
-        int age
-        int user_id FK
-    }
-```
+<p align="center">
+  <img src="docs/diagrams/er-diagram.svg" alt="Entity Relationship Diagram" width="100%">
+</p>
 
 ## 🚀 Quick Start
 
@@ -714,7 +641,8 @@ AirBnbfastapi/
 │   ├── diagrams/                      # Animated SVG diagrams
 │   │   ├── architecture.svg           # System architecture
 │   │   ├── booking-flow.svg           # Booking lifecycle
-│   │   └── ci-cd-pipeline.svg         # CI/CD pipeline
+│   │   ├── ci-cd-pipeline.svg         # CI/CD pipeline
+│   │   └── er-diagram.svg             # Entity Relationship diagram
 │   ├── GUIDE.md                       # Developer guide
 │   ├── HLD.md                         # High-Level Design document
 │   └── LLD.md                         # Low-Level Design document
