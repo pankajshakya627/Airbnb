@@ -50,7 +50,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: airbnb_test
+          POSTGRES_DB: airbnb
         ports:
           - 5432:5432
         options: >-
@@ -60,7 +60,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/airbnb_test
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/airbnb
       SECRET_KEY: ci-test-secret-key-not-for-production
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
@@ -89,6 +89,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest-cov ruff
+
+      - name: Create test database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE airbnb_test;"
 
       - name: Run database migrations
         run: alembic upgrade head
