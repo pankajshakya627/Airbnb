@@ -1,45 +1,49 @@
 from datetime import datetime
-from typing import Optional, List
+
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class HotelContactInfoSchema(BaseModel):
     """Schema for hotel contact information."""
-    phone: Optional[str] = None
-    email: Optional[EmailStr] = None
-    address: Optional[str] = None
+
+    phone: str | None = None
+    email: EmailStr | None = None
+    address: str | None = None
 
 
 class HotelCreate(BaseModel):
     """Schema for creating a hotel."""
+
     name: str
-    city: Optional[str] = None
-    photos: Optional[List[str]] = None
-    amenities: Optional[List[str]] = None
-    contact_info: Optional[HotelContactInfoSchema] = None
+    city: str | None = None
+    photos: list[str] | None = None
+    amenities: list[str] | None = None
+    contact_info: HotelContactInfoSchema | None = None
 
 
 class HotelUpdate(BaseModel):
     """Schema for updating a hotel."""
-    name: Optional[str] = None
-    city: Optional[str] = None
-    photos: Optional[List[str]] = None
-    amenities: Optional[List[str]] = None
-    contact_info: Optional[HotelContactInfoSchema] = None
+
+    name: str | None = None
+    city: str | None = None
+    photos: list[str] | None = None
+    amenities: list[str] | None = None
+    contact_info: HotelContactInfoSchema | None = None
 
 
 class HotelResponse(BaseModel):
     """Response schema for hotel data."""
+
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     name: str
-    city: Optional[str] = None
-    photos: Optional[List[str]] = None
-    amenities: Optional[List[str]] = None
-    contact_phone: Optional[str] = None
-    contact_email: Optional[str] = None
-    contact_address: Optional[str] = None
+    city: str | None = None
+    photos: list[str] | None = None
+    amenities: list[str] | None = None
+    contact_phone: str | None = None
+    contact_email: str | None = None
+    contact_address: str | None = None
     active: bool
     owner_id: int
     created_at: datetime
@@ -48,13 +52,14 @@ class HotelResponse(BaseModel):
 
 class HotelInfoResponse(BaseModel):
     """Public hotel info response."""
+
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     name: str
-    city: Optional[str] = None
-    photos: Optional[List[str]] = None
-    amenities: Optional[List[str]] = None
-    contact_phone: Optional[str] = None
-    contact_email: Optional[str] = None
-    contact_address: Optional[str] = None
+    city: str | None = None
+    photos: list[str] | None = None
+    amenities: list[str] | None = None
+    contact_phone: str | None = None
+    contact_email: str | None = None
+    contact_address: str | None = None

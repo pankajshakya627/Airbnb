@@ -1,14 +1,14 @@
 from logging.config import fileConfig
 
-from sqlalchemy import pool, create_engine
+from sqlalchemy import create_engine, pool
 from sqlalchemy.engine import Connection
 
 from alembic import context
+from app.config import get_settings
 
 # Import models for autogenerate support
 from app.database import Base
 from app.models import *  # noqa
-from app.config import get_settings
 
 settings = get_settings()
 
@@ -50,10 +50,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

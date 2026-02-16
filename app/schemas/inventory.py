@@ -1,13 +1,14 @@
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
-from typing import Optional, List
+
 from pydantic import BaseModel, ConfigDict
 
 
 class InventoryResponse(BaseModel):
     """Response schema for inventory data."""
+
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     hotel_id: int
     room_id: int
@@ -23,16 +24,18 @@ class InventoryResponse(BaseModel):
 
 class InventoryUpdate(BaseModel):
     """Schema for updating inventory."""
-    surge_factor: Optional[Decimal] = None
-    price: Optional[Decimal] = None
-    closed: Optional[bool] = None
-    total_count: Optional[int] = None
+
+    surge_factor: Decimal | None = None
+    price: Decimal | None = None
+    closed: bool | None = None
+    total_count: int | None = None
 
 
 class InventoryBulkUpdate(BaseModel):
     """Schema for bulk inventory updates."""
+
     start_date: date
     end_date: date
-    surge_factor: Optional[Decimal] = None
-    price: Optional[Decimal] = None
-    closed: Optional[bool] = None
+    surge_factor: Decimal | None = None
+    price: Decimal | None = None
+    closed: bool | None = None

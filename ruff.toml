@@ -16,9 +16,11 @@ select = [
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
+    "E712",   # comparison to True/False (required by SQLAlchemy filter expressions)
     "B008",   # do not perform function calls in argument defaults (FastAPI uses Depends())
     "B904",   # raise-without-from-inside-except
     "UP007",  # use X | Y instead of Union (keeping for compatibility)
+    "UP046",  # generic class uses Generic subclass (Pydantic pattern)
 ]
 
 [lint.per-file-ignores]

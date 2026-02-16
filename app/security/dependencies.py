@@ -1,21 +1,18 @@
-from typing import List, Callable
-from functools import wraps
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.user import User
 from app.models.enums import Role
+from app.models.user import User
 from app.security.jwt import verify_token
 
 security = HTTPBearer()
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db)
+    credentials: HTTPAuthorizationCredentials = Depends(security), db: AsyncSession = Depends(get_db)
 ) -> User:
     """Dependency to get the current authenticated user."""
     credentials_exception = HTTPException(
@@ -23,36 +20,35 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     token = credentials.credentials
     payload = verify_token(token)
-    
+
     if payload is None:
         raise credentials_exception
-    
+
     user_id = payload.get("sub")
     if user_id is None:
         raise credentials_exception
-    
+
     result = await db.execute(select(User).where(User.id == int(user_id)))
     user = result.scalar_one_or_none()
-    
+
     if user is None:
         raise credentials_exception
-    
+
     return user
 
 
-def require_role(required_roles: List[Role]):
+def require_role(required_roles: list[Role]):
     """Dependency factory to require specific roles."""
+
     async def role_checker(current_user: User = Depends(get_current_user)) -> User:
         for role in required_roles:
             if current_user.has_role(role):
                 return current_user
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+
     return role_checker
 
 

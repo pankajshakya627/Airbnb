@@ -1,17 +1,18 @@
 import asyncio
-from typing import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator
+
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
-from app.main import app
-from app.database import get_db, Base
 from app.config import get_settings
+from app.database import Base, get_db
+from app.main import app
 from app.models.enums import Role
-from app.security.password import hash_password
 from app.security.jwt import create_access_token
+from app.security.password import hash_password
 
 # Test database URL - uses same database with test_ prefix
 settings = get_settings()
@@ -42,10 +43,10 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """Create a fresh database session for each test."""
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     async with TestAsyncSessionLocal() as session:
         yield session
-    
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
@@ -53,15 +54,16 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Create an async test client."""
+
     async def override_get_db():
         yield db_session
-    
+
     app.dependency_overrides[get_db] = override_get_db
-    
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
-    
+
     app.dependency_overrides.clear()
 
 
@@ -69,12 +71,9 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 async def test_user(db_session: AsyncSession):
     """Create a test user."""
     from app.models.user import User
-    
+
     user = User(
-        email="test@example.com",
-        password=hash_password("testpassword123"),
-        name="Test User",
-        roles=[Role.GUEST.value]
+        email="test@example.com", password=hash_password("testpassword123"), name="Test User", roles=[Role.GUEST.value]
     )
     db_session.add(user)
     await db_session.commit()
@@ -86,12 +85,12 @@ async def test_user(db_session: AsyncSession):
 async def test_hotel_manager(db_session: AsyncSession):
     """Create a test hotel manager."""
     from app.models.user import User
-    
+
     user = User(
         email="manager@example.com",
         password=hash_password("managerpass123"),
         name="Hotel Manager",
-        roles=[Role.GUEST.value, Role.HOTEL_MANAGER.value]
+        roles=[Role.GUEST.value, Role.HOTEL_MANAGER.value],
     )
     db_session.add(user)
     await db_session.commit()
@@ -117,7 +116,7 @@ async def manager_auth_headers(test_hotel_manager):
 async def test_hotel(db_session: AsyncSession, test_hotel_manager):
     """Create a test hotel."""
     from app.models.hotel import Hotel
-    
+
     hotel = Hotel(
         name="Test Hotel",
         city="Test City",
@@ -127,7 +126,7 @@ async def test_hotel(db_session: AsyncSession, test_hotel_manager):
         owner_id=test_hotel_manager.id,
         contact_phone="+1-555-0100",
         contact_email="hotel@test.com",
-        contact_address="123 Test St"
+        contact_address="123 Test St",
     )
     db_session.add(hotel)
     await db_session.commit()
@@ -139,7 +138,7 @@ async def test_hotel(db_session: AsyncSession, test_hotel_manager):
 async def test_room(db_session: AsyncSession, test_hotel):
     """Create a test room."""
     from app.models.room import Room
-    
+
     room = Room(
         hotel_id=test_hotel.id,
         type="Deluxe",
@@ -147,7 +146,7 @@ async def test_room(db_session: AsyncSession, test_hotel):
         photos=["https://example.com/room.jpg"],
         amenities=["king_bed", "balcony"],
         total_count=5,
-        capacity=2
+        capacity=2,
     )
     db_session.add(room)
     await db_session.commit()
@@ -158,15 +157,10 @@ async def test_room(db_session: AsyncSession, test_hotel):
 @pytest_asyncio.fixture
 async def test_guest(db_session: AsyncSession, test_user):
     """Create a test guest."""
-    from app.models.guest import Guest
     from app.models.enums import Gender
-    
-    guest = Guest(
-        name="Test Guest",
-        gender=Gender.MALE,
-        age=30,
-        user_id=test_user.id
-    )
+    from app.models.guest import Guest
+
+    guest = Guest(name="Test Guest", gender=Gender.MALE, age=30, user_id=test_user.id)
     db_session.add(guest)
     await db_session.commit()
     await db_session.refresh(guest)
