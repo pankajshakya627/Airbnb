@@ -21,6 +21,7 @@ ignore = [
     "B904",   # raise-without-from-inside-except
     "UP007",  # use X | Y instead of Union (keeping for compatibility)
     "UP046",  # generic class uses Generic subclass (Pydantic pattern)
+    "UP042",  # str+Enum inheritance (SQLAlchemy requires this pattern for Enum columns)
 ]
 
 [lint.per-file-ignores]
