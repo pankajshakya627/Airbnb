@@ -1,865 +1,737 @@
-# High-Level Design (HLD) Document
+<div align="center">
 
-## AirBnb Hotel Booking System - FastAPI Backend
+# 🏗️ High-Level Design Document
+
+### AirBnb Hotel Booking System — FastAPI Backend
+
+[![Status](https://img.shields.io/badge/Status-Production_Ready-00b894?style=for-the-badge)](/)
+[![Version](https://img.shields.io/badge/Version-2.0-0f3460?style=for-the-badge)](/)
+[![Last Updated](https://img.shields.io/badge/Updated-February_2026-e94560?style=for-the-badge)](/)
+
+</div>
+
+---
+
+| Field            | Value          |
+| ---------------- | -------------- |
+| **Document ID**  | HLD-AIRBNB-001 |
+| **Version**      | 2.0            |
+| **Status**       | ✅ Approved    |
+| **Author**       | Pankaj Shakya  |
+| **Last Updated** | 2026-02-17     |
+| **Reviewers**    | —              |
+
+### 📋 Change Log
+
+| Version | Date       | Changes                                                                        |
+| ------- | ---------- | ------------------------------------------------------------------------------ |
+| 1.0     | 2026-02-08 | Initial HLD with architecture, DB design, flows                                |
+| 1.1     | 2026-02-08 | Added system design concepts & interview Q&A                                   |
+| 2.0     | 2026-02-17 | Industry-grade overhaul: proper symbols, SVG diagrams, NFRs, capacity planning |
+
+---
+
+## 📑 Table of Contents
+
+1. [Executive Summary](#1-executive-summary)
+2. [System Architecture](#2-system-architecture)
+3. [Component Architecture](#3-component-architecture)
+4. [Database Design](#4-database-design)
+5. [Authentication & Authorization](#5-authentication--authorization)
+6. [Core Business Flows](#6-core-business-flows)
+7. [API Design](#7-api-design)
+8. [Non-Functional Requirements](#8-non-functional-requirements)
+9. [Capacity Planning & Estimates](#9-capacity-planning--estimates)
+10. [Security Architecture](#10-security-architecture)
+11. [Deployment Architecture](#11-deployment-architecture)
+12. [Scalability Roadmap](#12-scalability-roadmap)
+13. [Technology Stack](#13-technology-stack)
+14. [System Design Concepts](#14-system-design-concepts)
+15. [Interview Questions & Answers](#15-interview-questions--answers)
 
 ---
 
 ## 1. Executive Summary
 
-This document provides a comprehensive High-Level Design (HLD) for the AirBnb Hotel Booking System backend. The system is a production-ready RESTful API built with **FastAPI** (Python), designed to handle hotel management, room inventory, user authentication, and complete booking workflows with integrated payment processing.
+### 1.1 Problem Statement
 
-### Key Highlights
+Build a **production-ready hotel booking platform** that handles the complete lifecycle — from hotel discovery to payment confirmation — with high reliability, security, and performance.
 
-- **Architecture**: Layered architecture with clear separation of concerns
-- **Database**: PostgreSQL with async SQLAlchemy ORM
-- **Authentication**: JWT-based with role-based access control (RBAC)
-- **Payments**: Stripe integration for secure checkout
-- **Scalability**: Async I/O throughout for high concurrency
+### 1.2 Solution Overview
+
+A **layered monolithic REST API** built with FastAPI (Python 3.12), PostgreSQL 16, and async SQLAlchemy, integrated with Stripe for payments, containerized with Docker, and deployed via GitHub Actions CI/CD.
+
+### 1.3 Key Architectural Decisions
+
+| #   | Decision                   | Rationale                                          | Trade-off                           |
+| --- | -------------------------- | -------------------------------------------------- | ----------------------------------- |
+| 1   | 🏛️ Layered Monolith        | Simple to deploy, test, and debug at current scale | Harder to scale individual layers   |
+| 2   | ⚡ Async I/O (asyncpg)     | Handle thousands of concurrent connections         | Added complexity vs sync            |
+| 3   | 🔐 JWT + RBAC              | Stateless auth, horizontally scalable              | Revocation requires token blacklist |
+| 4   | 💳 Stripe Webhooks         | Reliable payment confirmation, PCI compliance      | Webhook delivery delay (~2-5s)      |
+| 5   | 🐘 PostgreSQL (ACID)       | Strong consistency for financial transactions      | Harder to shard horizontally        |
+| 6   | 🐳 Docker + GitHub Actions | Reproducible builds, automated CI/CD               | Container overhead on small infra   |
 
 ---
 
 ## 2. System Architecture
 
-### 2.1 Architecture Diagram
+### 2.1 System Context Diagram (C4 Level 1)
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                        CLIENT LAYER                            │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│  │  Web App │  │Mobile App│  │  Swagger │  │   cURL   │        │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
-└───────┼─────────────┼─────────────┼─────────────┼──────────────┘
-        │             │             │             │
-        └─────────────┴──────┬──────┴─────────────┘
-                             │ HTTPS
-┌────────────────────────────┼────────────────────────────────────┐
-│                    API GATEWAY LAYER                            │
-│  ┌─────────────────────────┴─────────────────────────────────┐  │
-│  │                    FastAPI Application                    │  │
-│  │  ┌─────────────────────────────────────────────────────┐  │  │
-│  │  │                    Routers (8)                      │  │  │
-│  │  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────────┐    │  │  │
-│  │  │  │  Auth  │ │ Hotels │ │ Rooms  │ │  Bookings  │    │  │  │
-│  │  │  ├────────┤ ├────────┤ ├────────┤ ├────────────┤    │  │  │
-│  │  │  │ Users  │ │Inventory││ Browse │ │  Webhooks  │    │  │  │
-│  │  │  └────────┘ └────────┘ └────────┘ └────────────┘    │  │  │
-│  │  └─────────────────────────────────────────────────────┘  │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                             │
-┌────────────────────────────┼────────────────────────────────────┐
-│                    SERVICE LAYER                                │
-│  ┌─────────────────────────┴─────────────────────────────────┐  │
-│  │                   Business Logic (8 Services)             │  │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────────────────┐ │  │
-│  │  │AuthService │ │HotelService│ │    BookingService      │ │  │
-│  │  ├────────────┤ ├────────────┤ ├────────────────────────┤ │  │
-│  │  │RoomService │ │InventorySvc│ │   CheckoutService      │ │  │
-│  │  ├────────────┤ ├────────────┤ ├────────────────────────┤ │  │
-│  │  │UserService │ │GuestService│ │                        │ │  │
-│  │  └────────────┘ └────────────┘ └────────────────────────┘ │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                             │
-┌────────────────────────────┼────────────────────────────────────┐
-│                    DATA ACCESS LAYER                            │
-│  ┌─────────────────────────┴─────────────────────────────────┐  │
-│  │              SQLAlchemy Async ORM (7 Models)              │  │
-│  │  ┌──────┐ ┌───────┐ ┌──────┐ ┌─────────┐ ┌─────────────┐  │  │
-│  │  │ User │ │ Hotel │ │ Room │ │Inventory│ │   Booking   │  │  │
-│  │  └──────┘ └───────┘ └──────┘ └─────────┘ └─────────────┘  │  │
-│  │  ┌───────┐ ┌──────────────┐                               │  │
-│  │  │ Guest │ │HotelMinPrice │                               │  │
-│  │  └───────┘ └──────────────┘                               │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                             │
-┌────────────────────────────┼────────────────────────────────────┐
-│                    DATABASE LAYER                               │
-│  ┌─────────────────────────┴─────────────────────────────────┐  │
-│  │                   PostgreSQL 14+                          │  │
-│  │        (asyncpg driver for async connections)             │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                             │
-┌────────────────────────────┴────────────────────────────────────┐
-│                    EXTERNAL SERVICES                            │
-│  ┌───────────────────┐                                          │
-│  │    Stripe API     │  (Payment Processing & Webhooks)         │
-│  └───────────────────┘                                          │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    ◻️  SYSTEM CONTEXT                     │
+│                                                         │
+│   ┌─────────┐    HTTPS/JSON     ┌───────────────────┐  │
+│   │ 👤 User │ ◄──────────────► │ 🏨 Booking System │  │
+│   │ (Guest/ │                   │    (FastAPI)       │  │
+│   │ Manager)│                   └────────┬──────────┘  │
+│   └─────────┘                            │              │
+│                                          │ HTTPS        │
+│                                  ┌───────▼──────────┐   │
+│                                  │ 💳 Stripe API    │   │
+│                                  │ (Payment Gateway)│   │
+│                                  └──────────────────┘   │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### 2.1.1 Interactive Architecture Diagram
+### 2.2 Container Diagram (C4 Level 2)
+
+<p align="center">
+  <img src="diagrams/architecture.svg" alt="System Architecture" width="100%">
+</p>
+
+### 2.3 Layered Architecture Overview
 
 ```mermaid
 flowchart TB
-    subgraph CLIENTS["🌐 Client Layer"]
-        WEB["🖥️ Web App"]
-        MOBILE["📱 Mobile App"]
-        SWAGGER["📚 Swagger UI"]
-        CURL["⌨️ cURL/Postman"]
+    subgraph CL["🌐 Client Layer"]
+        direction LR
+        W["🖥️ Web App"]
+        M["📱 Mobile App"]
+        S["📚 Swagger /docs"]
+        C["⌨️ cURL / Postman"]
     end
 
-    subgraph API["⚡ FastAPI Gateway"]
-        AUTH["🔐 Auth Router"]
-        HOTELS["🏨 Hotels Router"]
-        ROOMS["🛏️ Rooms Router"]
-        BOOKINGS["📅 Bookings Router"]
-        USERS["👤 Users Router"]
-        INVENTORY["📦 Inventory Router"]
-        BROWSE["🔍 Browse Router"]
-        WEBHOOKS["🔗 Webhooks Router"]
+    subgraph GW["🛡️ API Gateway — FastAPI"]
+        direction LR
+        CORS["🔀 CORS Middleware"]
+        JWT["🔐 JWT Validator"]
+        RBAC["👮 RBAC Guard"]
     end
 
-    subgraph SERVICES["🧠 Service Layer"]
-        AUTH_SVC["AuthService"]
-        HOTEL_SVC["HotelService"]
-        ROOM_SVC["RoomService"]
-        BOOKING_SVC["BookingService"]
-        CHECKOUT_SVC["CheckoutService"]
-        USER_SVC["UserService"]
-        GUEST_SVC["GuestService"]
-        INV_SVC["InventoryService"]
+    subgraph RL["📡 Router Layer — 8 Modules"]
+        direction LR
+        R1["🔑 Auth"]
+        R2["🏨 Hotels"]
+        R3["🛏️ Rooms"]
+        R4["📅 Bookings"]
+        R5["📦 Inventory"]
+        R6["🔍 Browse"]
+        R7["👤 Users"]
+        R8["🔗 Webhooks"]
     end
 
-    subgraph DATA["💾 Data Layer"]
-        ORM["SQLAlchemy Async ORM"]
+    subgraph SL["⚙️ Service Layer — Business Logic"]
+        direction LR
+        S1["AuthService"]
+        S2["HotelService"]
+        S3["RoomService"]
+        S4["BookingService"]
+        S5["CheckoutService"]
+        S6["InventoryService"]
+        S7["UserService"]
+        S8["GuestService"]
+    end
+
+    subgraph DL["🗃️ Data Access Layer"]
+        ORM["📦 SQLAlchemy 2.0 Async ORM"]
+        AL["📐 Alembic Migrations"]
     end
 
     subgraph DB["🗄️ Database"]
-        POSTGRES[("PostgreSQL 14+")]
+        PG[("🐘 PostgreSQL 16\n(asyncpg driver)")]
     end
 
-    subgraph EXTERNAL["🌍 External"]
-        STRIPE["💳 Stripe API"]
+    subgraph EXT["🌍 External Services"]
+        STRIPE["💳 Stripe API\n(Payments + Webhooks)"]
     end
 
-    CLIENTS --> API
-    API --> SERVICES
-    SERVICES --> DATA
-    DATA --> DB
-    BOOKINGS --> CHECKOUT_SVC --> STRIPE
-    WEBHOOKS --> STRIPE
+    CL -->|HTTPS / JSON| GW
+    GW --> RL
+    RL --> SL
+    SL --> DL
+    DL --> DB
+    S5 -.->|Checkout Session| STRIPE
+    R8 -.->|Webhook Events| STRIPE
 
-    style CLIENTS fill:#e1f5fe
-    style API fill:#fff3e0
-    style SERVICES fill:#e8f5e9
-    style DATA fill:#fce4ec
-    style DB fill:#f3e5f5
-    style EXTERNAL fill:#fff8e1
+    style CL fill:#1a1a2e,stroke:#e94560,color:#eee
+    style GW fill:#16213e,stroke:#0f3460,color:#eee
+    style RL fill:#0f3460,stroke:#533483,color:#eee
+    style SL fill:#533483,stroke:#e94560,color:#eee
+    style DL fill:#2d3436,stroke:#636e72,color:#eee
+    style DB fill:#1a1a2e,stroke:#00b894,color:#eee
+    style EXT fill:#16213e,stroke:#fdcb6e,color:#eee
 ```
-
-### 2.2 Layer Responsibilities
-
-| Layer           | Responsibility                | Components                        |
-| --------------- | ----------------------------- | --------------------------------- |
-| **Client**      | User interaction              | Web/Mobile apps, Swagger UI       |
-| **API Gateway** | Request routing, validation   | FastAPI routers, Pydantic schemas |
-| **Service**     | Business logic, orchestration | 8 service classes                 |
-| **Data Access** | ORM, database operations      | SQLAlchemy models                 |
-| **Database**    | Data persistence              | PostgreSQL                        |
-| **External**    | Third-party integrations      | Stripe payments                   |
 
 ---
 
-## 3. Database Design
+## 3. Component Architecture
 
-### 3.1 Entity-Relationship Diagram
+### 3.1 Component Legend
 
-```
-┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-│   app_user   │       │    hotel     │       │     room     │
-├──────────────┤       ├──────────────┤       ├──────────────┤
-│ id (PK)      │──┐    │ id (PK)      │──┐    │ id (PK)      │
-│ email        │  │    │ name         │  │    │ hotel_id(FK) │──┐
-│ password     │  │    │ city         │  │    │ type         │  │
-│ name         │  │    │ photos[]     │  │    │ base_price   │  │
-│ roles[]      │  │    │ amenities[]  │  │    │ total_count  │  │
-│ gender       │  │    │ active       │  │    │ capacity     │  │
-│ date_of_birth│  │    │ owner_id(FK) │──┘    │ amenities[]  │  │
-└──────────────┘  │    │ contact_*    │       └──────────────┘  │
-                  │    └──────────────┘                         │
-                  │           │                                 │
-                  │           │                                 │
-┌──────────────┐  │    ┌──────┴───────┐       ┌──────────────┐  │
-│    guest     │  │    │  inventory   │       │   booking    │  │
-├──────────────┤  │    ├──────────────┤       ├──────────────┤  │
-│ id (PK)      │  │    │ id (PK)      │       │ id (PK)      │  │
-│ user_id (FK) │──┘    │ hotel_id(FK) │       │ hotel_id(FK) │──┘
-│ name         │       │ room_id (FK) │───────│ room_id (FK) │
-│ gender       │       │ date         │       │ user_id (FK) │
-│ age          │       │ price        │       │ check_in     │
-└──────────────┘       │ surge_factor │       │ check_out    │
-       │               │ total_count  │       │ status       │
-       │               │ book_count   │       │ amount       │
-       └───────────────│ reserved_cnt │       └──────────────┘
-                       │ closed       │              │
-                       │ city         │              │
-                       └──────────────┘              │
-                                                     │
-                              ┌───────────────┐      │
-                              │ booking_guest │      │
-                              ├───────────────┤      │
-                              │ booking_id(FK)│──────┘
-                              │ guest_id (FK) │
-                              └───────────────┘
-```
+| Symbol | Component Type           | Description                            |
+| ------ | ------------------------ | -------------------------------------- |
+| 🛡️     | **Gateway / Middleware** | Request interception, validation, auth |
+| 📡     | **Router**               | HTTP endpoint handler, request routing |
+| ⚙️     | **Service**              | Business logic, orchestration          |
+| 📦     | **ORM Model**            | Database entity mapping                |
+| 🗄️     | **Database**             | Persistent data store                  |
+| 💳     | **External API**         | Third-party integration                |
+| 🔐     | **Security**             | Authentication, authorization          |
+| 📐     | **Migration**            | Schema versioning                      |
 
-### 3.1.1 Interactive ER Diagram
+### 3.2 Router → Service Mapping
+
+| 📡 Router                       | ⚙️ Service(s)                       | Role                              | Access Level     |
+| ------------------------------- | ----------------------------------- | --------------------------------- | ---------------- |
+| `🔑 /auth/*`                    | `AuthService`                       | Login, signup, token refresh      | 🔓 Public        |
+| `🏨 /admin/hotels/*`            | `HotelService`                      | Hotel CRUD, activation            | 🔒 HOTEL_MANAGER |
+| `🛏️ /admin/hotels/{id}/rooms/*` | `RoomService`                       | Room CRUD, inventory init         | 🔒 HOTEL_MANAGER |
+| `📦 /admin/inventory/*`         | `InventoryService`                  | Availability & pricing management | 🔒 HOTEL_MANAGER |
+| `📅 /bookings/*`                | `BookingService`, `CheckoutService` | Full booking lifecycle            | 🔒 Authenticated |
+| `🔍 /hotels/*`                  | `HotelService`, `InventoryService`  | Public search & browsing          | 🔓 Public        |
+| `👤 /users/*`                   | `UserService`, `GuestService`       | Profile & guest management        | 🔒 Authenticated |
+| `🔗 /webhooks/*`                | `CheckoutService`                   | Stripe payment callbacks          | 🔓 Stripe-signed |
+
+### 3.3 Service Dependencies
 
 ```mermaid
-erDiagram
-    USER ||--o{ GUEST : "has saved"
-    USER ||--o{ HOTEL : "owns"
-    USER ||--o{ BOOKING : "makes"
-    HOTEL ||--o{ ROOM : "contains"
-    HOTEL ||--o{ INVENTORY : "tracks"
-    ROOM ||--o{ INVENTORY : "has daily"
-    ROOM ||--o{ BOOKING : "reserved in"
-    BOOKING }o--o{ GUEST : "includes"
+flowchart LR
+    subgraph STANDALONE["Independent Services"]
+        direction TB
+        AS["🔑 AuthService"]
+        HS["🏨 HotelService"]
+        RS["🛏️ RoomService"]
+        IS["📦 InventoryService"]
+        US["👤 UserService"]
+        GS["👥 GuestService"]
+    end
 
-    USER {
-        int id PK
-        string email UK
-        string password
-        string name
-        array roles
-        enum gender
-        date date_of_birth
-    }
+    subgraph ORCHESTRATORS["Orchestrating Services"]
+        direction TB
+        BS["📅 BookingService"]
+        CS["💳 CheckoutService"]
+    end
 
-    HOTEL {
-        int id PK
-        string name
-        string city
-        array photos
-        array amenities
-        boolean active
-        int owner_id FK
-    }
+    BS -->|Check availability| IS
+    BS -->|Reserve rooms| IS
+    CS -->|Create session| STRIPE["💳 Stripe"]
+    CS -->|Confirm booking| BS
 
-    ROOM {
-        int id PK
-        int hotel_id FK
-        string type
-        decimal base_price
-        int total_count
-        int capacity
-    }
-
-    INVENTORY {
-        int id PK
-        int hotel_id FK
-        int room_id FK
-        date date
-        decimal price
-        decimal surge_factor
-        int booked_count
-        int reserved_count
-        boolean closed
-    }
-
-    BOOKING {
-        int id PK
-        int hotel_id FK
-        int room_id FK
-        int user_id FK
-        date check_in
-        date check_out
-        enum status
-        decimal amount
-    }
-
-    GUEST {
-        int id PK
-        int user_id FK
-        string name
-        enum gender
-        int age
-    }
+    style STANDALONE fill:#1a1a2e,stroke:#533483,color:#eee
+    style ORCHESTRATORS fill:#16213e,stroke:#e94560,color:#eee
 ```
-
-### 3.2 Table Descriptions
-
-| Table             | Purpose                 | Key Fields                      |
-| ----------------- | ----------------------- | ------------------------------- |
-| `app_user`        | User accounts           | email, password (hashed), roles |
-| `hotel`           | Hotel properties        | name, city, owner, amenities    |
-| `room`            | Room types per hotel    | type, base_price, capacity      |
-| `inventory`       | Daily room availability | date, price, counts             |
-| `booking`         | Reservations            | dates, status, amount           |
-| `guest`           | Saved guest profiles    | name, age, gender               |
-| `hotel_min_price` | Cached minimum prices   | For search optimization         |
 
 ---
 
-## 4. Authentication & Authorization
+## 4. Database Design
 
-### 4.1 JWT Authentication Flow
+### 4.1 Entity Relationship Diagram
 
-```
-┌──────────┐          ┌──────────┐          ┌──────────┐
-│  Client  │          │   API    │          │   DB     │
-└────┬─────┘          └────┬─────┘          └────┬─────┘
-     │                     │                     │
-     │  POST /auth/login   │                     │
-     │  {email, password}  │                     │
-     │────────────────────>│                     │
-     │                     │  Query user         │
-     │                     │────────────────────>│
-     │                     │<────────────────────│
-     │                     │  Verify password    │
-     │                     │  (bcrypt)           │
-     │                     │                     │
-     │  {access_token,     │                     │
-     │   refresh_token}    │                     │
-     │<────────────────────│                     │
-     │                     │                     │
-     │  GET /users/profile │                     │
-     │  Authorization:     │                     │
-     │  Bearer <token>     │                     │
-     │────────────────────>│                     │
-     │                     │  Decode JWT         │
-     │                     │  Extract user_id    │
-     │                     │  Check roles        │
-     │                     │────────────────────>│
-     │  {user profile}     │<────────────────────│
-     │<────────────────────│                     │
-```
+<p align="center">
+  <img src="diagrams/er-diagram.svg" alt="ER Diagram" width="100%">
+</p>
 
-### 4.1.1 Interactive Auth Sequence
+### 4.2 Table Summary
+
+| 📦 Table           | Purpose                      | Key Columns                                       | Indexes          |
+| ------------------ | ---------------------------- | ------------------------------------------------- | ---------------- |
+| `👤 app_user`      | User accounts & auth         | `email` (UQ), `password`, `roles[]`               | `email` (unique) |
+| `🏨 hotel`         | Hotel properties             | `name`, `city`, `active`, `owner_id` (FK→user)    | `city`           |
+| `🛏️ room`          | Room types per hotel         | `type`, `base_price`, `capacity`, `hotel_id` (FK) | —                |
+| `📊 inventory`     | Daily room availability      | `date`, `price`, `book_count`, `reserved_count`   | `date`, `city`   |
+| `📋 booking`       | Reservations                 | `check_in`, `check_out`, `status`, `amount`       | `user_id`        |
+| `👥 guest`         | Guest profiles               | `name`, `gender`, `age`, `user_id` (FK)           | —                |
+| `🔗 booking_guest` | M:N junction (booking↔guest) | `booking_id` (PK,FK), `guest_id` (PK,FK)          | Composite PK     |
+
+### 4.3 Unique Constraints
+
+| Constraint                        | Table       | Purpose                          |
+| --------------------------------- | ----------- | -------------------------------- |
+| `UNIQUE(hotel_id, room_id, date)` | `inventory` | One record per room type per day |
+| `UNIQUE(email)`                   | `app_user`  | No duplicate accounts            |
+| `UNIQUE(payment_session_id)`      | `booking`   | Idempotent payment processing    |
+
+### 4.4 Enum Types
+
+| Enum            | Values                                                                                   | Used In                           |
+| --------------- | ---------------------------------------------------------------------------------------- | --------------------------------- |
+| `BookingStatus` | `RESERVED` → `GUESTS_ADDED` → `PAYMENTS_PENDING` → `CONFIRMED` / `CANCELLED` / `EXPIRED` | `booking.booking_status`          |
+| `Role`          | `GUEST`, `HOTEL_MANAGER`                                                                 | `app_user.roles[]`                |
+| `Gender`        | `MALE`, `FEMALE`                                                                         | `app_user.gender`, `guest.gender` |
+
+---
+
+## 5. Authentication & Authorization
+
+### 5.1 JWT Authentication Flow
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant C as 🖥️ Client
-    participant A as ⚡ API
-    participant S as 🔐 Security
-    participant D as 🗄️ Database
+    participant GW as 🛡️ Gateway
+    participant AS as 🔑 AuthService
+    participant SEC as 🔐 Security
+    participant DB as 🗄️ PostgreSQL
 
-    Note over C,D: LOGIN FLOW
-    C->>+A: POST /auth/login {email, password}
-    A->>+D: Query user by email
-    D-->>-A: User record
-    A->>+S: Verify password (bcrypt)
-    S-->>-A: ✅ Valid
-    A->>S: Generate JWT tokens
-    S-->>A: {access_token, refresh_token}
-    A-->>-C: 200 OK {tokens}
+    rect rgb(30, 40, 60)
+        Note over C,DB: 1️⃣ LOGIN
+        C->>+GW: POST /auth/login {email, password}
+        GW->>+AS: authenticate()
+        AS->>+DB: SELECT user WHERE email = ?
+        DB-->>-AS: User record
+        AS->>+SEC: verify_password(bcrypt, 12 rounds)
+        SEC-->>-AS: ✅ Match
+        AS->>SEC: create_tokens(user_id, roles)
+        SEC-->>AS: {access_token (30m), refresh_token (7d)}
+        AS-->>-GW: TokenResponse
+        GW-->>-C: 200 OK {tokens}
+    end
 
-    Note over C,D: AUTHENTICATED REQUEST
-    C->>+A: GET /users/profile<br/>Authorization: Bearer <token>
-    A->>+S: Decode & validate JWT
-    S-->>-A: {user_id, roles}
-    A->>+D: Fetch user profile
-    D-->>-A: User data
-    A-->>-C: 200 OK {profile}
+    rect rgb(40, 50, 70)
+        Note over C,DB: 2️⃣ AUTHENTICATED REQUEST
+        C->>+GW: GET /users/profile — Bearer <token>
+        GW->>+SEC: decode_jwt(token)
+        SEC-->>-GW: {user_id, roles}
+        GW->>GW: RBAC check (role ∈ required_roles?)
+        GW->>+DB: SELECT user WHERE id = ?
+        DB-->>-GW: User data
+        GW-->>-C: 200 OK {profile}
+    end
 
-    Note over C,D: TOKEN REFRESH
-    C->>+A: POST /auth/refresh<br/>Cookie: refreshToken
-    A->>+S: Validate refresh token
-    S-->>-A: ✅ Valid
-    A->>S: Generate new access token
-    S-->>A: {new_access_token}
-    A-->>-C: 200 OK {token}
+    rect rgb(30, 60, 40)
+        Note over C,DB: 3️⃣ TOKEN REFRESH
+        C->>+GW: POST /auth/refresh {refresh_token}
+        GW->>+SEC: validate_refresh_token()
+        SEC-->>-GW: ✅ Valid — {user_id}
+        GW->>SEC: create_access_token(user_id)
+        SEC-->>GW: {new_access_token}
+        GW-->>-C: 200 OK {token}
+    end
 ```
 
-### 4.2 Role-Based Access Control (RBAC)
+### 5.2 RBAC Permission Matrix
 
-| Role            | Permissions                                                    |
-| --------------- | -------------------------------------------------------------- |
-| `GUEST`         | Browse hotels, create bookings, manage own profile/guests      |
-| `HOTEL_MANAGER` | All GUEST permissions + create/manage hotels, rooms, inventory |
+| Resource                 | 🔓 Public             | 👤 GUEST | 🏨 HOTEL_MANAGER |
+| ------------------------ | --------------------- | -------- | ---------------- |
+| `POST /auth/signup`      | ✅                    | ✅       | ✅               |
+| `POST /auth/login`       | ✅                    | ✅       | ✅               |
+| `GET /hotels/search`     | ✅                    | ✅       | ✅               |
+| `GET /users/profile`     | ❌                    | ✅       | ✅               |
+| `POST /bookings/init`    | ❌                    | ✅       | ✅               |
+| `POST /admin/hotels`     | ❌                    | ❌       | ✅               |
+| `PATCH /admin/inventory` | ❌                    | ❌       | ✅               |
+| `POST /webhooks/stripe`  | ✅ (Stripe signature) | —        | —                |
 
-### 4.3 Security Implementation
+### 5.3 Token Lifecycle
 
-```python
-# Password Hashing (bcrypt)
-def hash_password(password: str) -> str:
-    password_bytes = password.encode('utf-8')[:72]  # bcrypt limit
-    salt = bcrypt.gensalt(rounds=12)
-    return bcrypt.hashpw(password_bytes, salt).decode('utf-8')
-
-# JWT Token Structure
-{
-    "sub": "user_id",
-    "roles": ["GUEST", "HOTEL_MANAGER"],
-    "exp": 1770551111,  # 30 min expiry
-    "type": "access"
-}
+```
+┌──────────────────────────────────────────────────────┐
+│                🔐 Token Configuration                 │
+├───────────────────┬──────────────────────────────────┤
+│ Access Token      │ JWT, HS256, 30 min expiry        │
+│ Refresh Token     │ JWT, HS256, 7 day expiry         │
+│ Password Hash     │ bcrypt, 12 salt rounds           │
+│ Token Payload     │ {sub: user_id, roles[], exp, type}│
+└───────────────────┴──────────────────────────────────┘
 ```
 
 ---
 
-## 5. Core Business Scenarios
+## 6. Core Business Flows
 
-### 5.1 Booking Flow
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│                      BOOKING LIFECYCLE                         │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│   ┌──────────┐    ┌─────────────┐    ┌──────────────────┐      │
-│   │ RESERVED │───>│GUESTS_ADDED │───>│PAYMENTS_PENDING  │      │
-│   └──────────┘    └─────────────┘    └────────┬─────────┘      │
-│        │                                      │                │
-│        │                              ┌───────┴───────┐        │
-│        │                              │               │        │
-│        ▼                              ▼               ▼        │
-│   ┌──────────┐                   ┌─────────┐   ┌───────────┐   │
-│   │CANCELLED │                   │CONFIRMED│   │ CANCELLED │   │
-│   └──────────┘                   └─────────┘   └───────────┘   │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
-```
-
-### 5.1.1 Interactive Booking State Machine
+### 6.1 Booking Lifecycle State Machine
 
 ```mermaid
 stateDiagram-v2
-    [*] --> RESERVED: Initialize Booking
+    [*] --> RESERVED: 📅 POST /bookings/init
 
-    RESERVED --> GUESTS_ADDED: Add Guests
-    RESERVED --> CANCELLED: Cancel
+    RESERVED --> GUESTS_ADDED: 👥 POST /bookings/{id}/addGuests
+    RESERVED --> CANCELLED: ❌ Cancel / ⏰ 15 min timeout
 
-    GUESTS_ADDED --> PAYMENTS_PENDING: Initiate Payment
-    GUESTS_ADDED --> CANCELLED: Cancel
+    GUESTS_ADDED --> PAYMENTS_PENDING: 💳 POST /bookings/{id}/payments
+    GUESTS_ADDED --> CANCELLED: ❌ Cancel
 
-    PAYMENTS_PENDING --> CONFIRMED: Stripe Webhook Success
-    PAYMENTS_PENDING --> CANCELLED: Payment Failed/Timeout
+    PAYMENTS_PENDING --> CONFIRMED: ✅ Stripe Webhook (payment.success)
+    PAYMENTS_PENDING --> CANCELLED: ❌ Payment failed / expired
 
-    CONFIRMED --> [*]
-    CANCELLED --> [*]
+    CONFIRMED --> [*]: 🎉 Booking complete
+    CANCELLED --> [*]: 🔓 Inventory released
 
     note right of RESERVED
-        Inventory reserved
-        15 min timeout
+        📦 Inventory reserved (reserved_count++)
+        ⏰ Auto-expires after 15 minutes
     end note
 
     note right of CONFIRMED
-        Inventory confirmed
-        Payment captured
+        📦 Inventory confirmed (book_count++)
+        📦 Reserved released (reserved_count--)
+        💰 Payment captured
     end note
 ```
 
-**Flow Steps:**
+### 6.2 Booking Flow — Detailed Sequence
 
-1. **Initialize Booking (RESERVED)**
-   - User selects hotel, room, dates
-   - System checks inventory availability
-   - Reserves inventory (increments `reserved_count`)
-   - Creates booking with status `RESERVED`
+<p align="center">
+  <img src="diagrams/booking-flow.svg" alt="Booking Flow" width="100%">
+</p>
 
-2. **Add Guests (GUESTS_ADDED)**
-   - User adds guest profiles to booking
-   - System validates guest ownership
-   - Updates status to `GUESTS_ADDED`
-
-3. **Payment (PAYMENTS_PENDING → CONFIRMED)**
-   - User initiates payment
-   - System creates Stripe checkout session
-   - On webhook confirmation: `CONFIRMED`
-   - Converts reserved to booked inventory
-
-4. **Cancellation**
-   - Available before payment completion
-   - Releases reserved inventory
-   - Sets status to `CANCELLED`
-
-### 5.2 Hotel Management Flow
+### 6.3 Inventory Calculation
 
 ```
-Hotel Lifecycle:
-
-┌────────────┐    ┌────────────┐    ┌────────────┐
-│  CREATE    │───>│  INACTIVE  │───>│   ACTIVE   │
-│   Hotel    │    │  (setup)   │    │ (bookable) │
-└────────────┘    └──────┬─────┘    └────────────┘
-                         │                 │
-                         │    ┌────────────┤
-                         │    │            │
-                         ▼    ▼            ▼
-                    ┌──────────────┐  ┌─────────┐
-                    │ ADD ROOMS    │  │ REPORTS │
-                    │ SET INVENTORY│  │ BOOKINGS│
-                    └──────────────┘  └─────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                📊 Inventory Formula (per room type, per day)    │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│   available_count = total_count − book_count − reserved_count  │
+│                                                                │
+│   final_price = base_price × surge_factor                      │
+│                                                                │
+│   Example:                                                     │
+│   ┌────────────┬──────────┬──────────┬───────────┬──────────┐  │
+│   │ total: 10  │ booked: 3│ reserved:2│ available:5│ closed:F│  │
+│   ├────────────┴──────────┴──────────┴───────────┴──────────┤  │
+│   │ base: $200 × surge: 1.5 = final: $300/night             │  │
+│   └─────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2.1 Interactive Hotel Management Flow
-
-```mermaid
-flowchart LR
-    subgraph SETUP["📝 Setup Phase"]
-        CREATE["🏨 Create Hotel"] --> INACTIVE["⏸️ Inactive"]
-        INACTIVE --> ADD_ROOMS["🛏️ Add Rooms"]
-        ADD_ROOMS --> SET_INV["📦 Set Inventory"]
-    end
-
-    subgraph LIVE["🟢 Live Phase"]
-        ACTIVE["✅ Active"]
-        BOOKINGS["📅 Receive Bookings"]
-        REPORTS["📊 View Reports"]
-    end
-
-    SET_INV --> ACTIVATE{"Activate?"}
-    ACTIVATE -->|Yes| ACTIVE
-    ACTIVATE -->|No| INACTIVE
-    ACTIVE --> BOOKINGS
-    ACTIVE --> REPORTS
-    ACTIVE --> UPDATE["✏️ Update Details"]
-    UPDATE --> ACTIVE
-
-    style CREATE fill:#bbdefb
-    style ACTIVE fill:#c8e6c9
-    style BOOKINGS fill:#fff9c4
-    style REPORTS fill:#f8bbd9
-```
-
-### 5.3 Inventory Management
-
-**Theory: Dynamic Pricing with Surge Factor**
-
-```
-Final Price = Base Price × Surge Factor
-
-Example:
-- Base Price: $200
-- Surge Factor: 1.5 (during peak season)
-- Final Price: $300
-```
-
-**Inventory Structure:**
-
-```
-┌────────────────────────────────────────────────────────┐
-│                    INVENTORY (per room, per day)        │
-├─────────────┬──────────────────────────────────────────┤
-│ total_count │ Maximum rooms of this type               │
-│ book_count  │ Confirmed bookings                       │
-│ reserved_cnt│ Pending reservations                     │
-│ available   │ total - book_count - reserved_count      │
-│ closed      │ Manually closed for maintenance          │
-└─────────────┴──────────────────────────────────────────┘
-```
-
-### 5.3.1 Interactive Inventory Calculation Flow
-
-```mermaid
-flowchart TD
-    subgraph INPUT["📥 Inputs"]
-        TOTAL["Total Count: 10"]
-        BOOKED["Booked: 3"]
-        RESERVED["Reserved: 2"]
-        CLOSED["Closed: false"]
-    end
-
-    CALC["🧮 Calculate Available"]
-    FORMULA["Available = Total - Booked - Reserved"]
-    RESULT["Available: 5 rooms"]
-
-    subgraph PRICING["💰 Dynamic Pricing"]
-        BASE["Base: $200"]
-        SURGE["Surge: 1.5x"]
-        FINAL["Final: $300"]
-    end
-
-    TOTAL --> CALC
-    BOOKED --> CALC
-    RESERVED --> CALC
-    CALC --> FORMULA --> RESULT
-
-    BASE --> SURGE --> FINAL
-
-    style RESULT fill:#c8e6c9
-    style FINAL fill:#fff9c4
-```
-
----
-
-## 6. API Design Principles
-
-### 6.1 RESTful Conventions
-
-| HTTP Method | Operation      | Example                    |
-| ----------- | -------------- | -------------------------- |
-| `GET`       | Read           | `GET /hotels/1`            |
-| `POST`      | Create         | `POST /hotels`             |
-| `PUT`       | Full Update    | `PUT /hotels/1`            |
-| `PATCH`     | Partial Update | `PATCH /hotels/1/activate` |
-| `DELETE`    | Delete         | `DELETE /hotels/1`         |
-
-### 6.2 URL Structure
-
-```
-/auth/*           # Authentication (public)
-/users/*          # User profile & guests (authenticated)
-/hotels/*         # Public hotel browsing
-/bookings/*       # Booking operations (authenticated)
-/admin/hotels/*   # Hotel management (HOTEL_MANAGER)
-/admin/inventory/*# Inventory management (HOTEL_MANAGER)
-/webhooks/*       # External service callbacks
-```
-
-### 6.3 Error Handling
-
-```python
-# Standardized Error Response
-{
-    "detail": "Error message here"
-}
-
-# HTTP Status Codes Used
-200 OK           # Success
-201 Created      # Resource created
-204 No Content   # Success, no body
-400 Bad Request  # Validation error
-401 Unauthorized # Invalid/missing token
-403 Forbidden    # Insufficient permissions
-404 Not Found    # Resource doesn't exist
-422 Unprocessable# Pydantic validation failed
-500 Internal     # Server error
-```
-
-### 6.4 Payment Flow with Stripe
+### 6.4 Payment Integration (Stripe)
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant U as 👤 User
-    participant A as ⚡ API
-    participant S as 💳 Stripe
-    participant W as 🔗 Webhook
+    participant API as ⚡ FastAPI
+    participant CS as 💳 CheckoutService
+    participant S as 🏦 Stripe
+    participant WH as 🔗 Webhook Handler
+    participant BS as 📅 BookingService
 
-    U->>+A: POST /bookings/1/payments
-    A->>A: Create line items
-    A->>+S: Create Checkout Session
-    S-->>-A: {session_id, url}
-    A-->>-U: {session_url}
+    U->>+API: POST /bookings/{id}/payments
+    API->>+CS: create_checkout(booking)
+    CS->>+S: stripe.checkout.Session.create()
+    S-->>-CS: {session_id, checkout_url}
+    CS->>CS: Save session_id to booking
+    CS-->>-API: {session_url}
+    API-->>-U: 302 → Stripe Checkout
 
-    U->>+S: Redirect to Stripe Checkout
-    Note over U,S: User enters payment details
-    S-->>-U: Payment completed
+    Note over U,S: 💳 User completes payment on Stripe
 
-    S->>+W: POST /webhooks/stripe<br/>checkout.session.completed
-    W->>W: Verify signature
-    W->>W: Update booking → CONFIRMED
-    W->>W: Convert reserved → booked
-    W-->>-S: 200 OK
-
-    U->>+A: GET /bookings/1/status
-    A-->>-U: {status: CONFIRMED}
+    S->>+WH: POST /webhooks/stripe (checkout.session.completed)
+    WH->>WH: Verify Stripe signature (HMAC)
+    WH->>+BS: confirm_booking(session_id)
+    BS->>BS: booking.status = CONFIRMED
+    BS->>BS: inventory: reserved→booked
+    BS-->>-WH: ✅ Confirmed
+    WH-->>-S: 200 OK
 ```
 
 ---
 
-## 7. Technology Stack Deep Dive
+## 7. API Design
 
-### 7.1 Why FastAPI?
+### 7.1 RESTful Conventions
 
-| Feature                | Benefit                              |
-| ---------------------- | ------------------------------------ |
-| **Async Native**       | High concurrency with `asyncpg`      |
-| **Auto Documentation** | Swagger UI generated from code       |
-| **Type Hints**         | Pydantic validation, IDE support     |
-| **Performance**        | One of the fastest Python frameworks |
-| **Modern Python**      | Uses latest language features        |
+| Method   | Semantics      | Example                          | Response         |
+| -------- | -------------- | -------------------------------- | ---------------- |
+| `GET`    | 📖 Read        | `GET /hotels/1`                  | `200 OK`         |
+| `POST`   | ➕ Create      | `POST /admin/hotels`             | `201 Created`    |
+| `PUT`    | 🔄 Full Update | `PUT /admin/hotels/1`            | `200 OK`         |
+| `PATCH`  | ✏️ Partial     | `PATCH /admin/hotels/1/activate` | `200 OK`         |
+| `DELETE` | 🗑️ Delete      | `DELETE /admin/hotels/1`         | `204 No Content` |
 
-### 7.2 SQLAlchemy Async
-
-```python
-# Async Session Management
-async with AsyncSession(engine) as session:
-    result = await session.execute(select(Hotel))
-    hotels = result.scalars().all()
-```
-
-### 7.3 Alembic Migrations
+### 7.2 URL Namespace
 
 ```
-alembic/
-├── env.py          # Migration environment
-├── versions/       # Migration scripts
-│   └── beb29e...   # Initial migration
-└── script.py.mako  # Template for new migrations
+🔓 Public:
+  POST   /auth/signup                  # Create account
+  POST   /auth/login                   # Get tokens
+  GET    /hotels/search?city=&date=    # Search hotels
+  GET    /hotels/{id}/info             # Hotel details
+
+🔒 Authenticated (GUEST):
+  GET    /users/profile                # View profile
+  POST   /bookings/init                # New booking
+  POST   /bookings/{id}/addGuests      # Add guests
+  POST   /bookings/{id}/payments       # Pay via Stripe
+
+🔒 Authenticated (HOTEL_MANAGER):
+  POST   /admin/hotels                 # Create hotel
+  PATCH  /admin/hotels/{id}/activate   # Activate hotel
+  POST   /admin/hotels/{id}/rooms      # Add rooms
+  PATCH  /admin/inventory/{id}         # Update pricing
+
+🔗 Webhooks:
+  POST   /webhooks/stripe              # Payment callbacks
+```
+
+### 7.3 Error Response Format
+
+```json
+{
+  "detail": "Booking not found: 42"
+}
+```
+
+| Code  | Meaning             | Example Scenario            |
+| ----- | ------------------- | --------------------------- |
+| `200` | ✅ Success          | Data returned               |
+| `201` | ✅ Created          | Hotel/booking created       |
+| `400` | ❌ Bad Request      | Invalid date range          |
+| `401` | 🔒 Unauthorized     | Missing/expired token       |
+| `403` | 🚫 Forbidden        | GUEST accessing /admin      |
+| `404` | 🔍 Not Found        | Hotel/booking doesn't exist |
+| `422` | ⚠️ Validation Error | Pydantic schema mismatch    |
+| `429` | ⏳ Rate Limited     | Too many requests           |
+| `500` | 💥 Server Error     | Unhandled exception         |
+
+---
+
+## 8. Non-Functional Requirements
+
+### 8.1 Performance Targets
+
+| Metric                 | Target  | Measurement                   |
+| ---------------------- | ------- | ----------------------------- |
+| 🚀 API Response (p50)  | < 100ms | Avg endpoint latency          |
+| 🚀 API Response (p99)  | < 500ms | Tail latency                  |
+| 📊 Throughput          | 500 RPS | Concurrent requests/sec       |
+| 🗄️ DB Query Time (p95) | < 50ms  | SQLAlchemy query execution    |
+| 💳 Payment Webhook     | < 5s    | Stripe → Confirmation latency |
+
+### 8.2 Availability & Reliability
+
+| Metric                   | Target                     |
+| ------------------------ | -------------------------- |
+| ⬆️ Uptime SLA            | 99.9% (8.7h downtime/year) |
+| 🔄 Recovery Time (RTO)   | < 15 minutes               |
+| 💾 Recovery Point (RPO)  | < 1 minute                 |
+| 🏥 Health Check Interval | Every 30s                  |
+| 🔁 Zero-Downtime Deploys | ✅ Blue-green              |
+
+### 8.3 Scalability Thresholds
+
+| Metric              | Current | Trigger for Scaling            |
+| ------------------- | ------- | ------------------------------ |
+| 👥 Concurrent Users | 100     | > 500 → Add API replicas       |
+| 🗄️ DB Connections   | 20 pool | > 80% utilization → Scale pool |
+| 📦 Storage          | 1 GB    | > 50 GB → Evaluate sharding    |
+| 📈 API Instances    | 1       | > 70% CPU → Auto-scale         |
+
+---
+
+## 9. Capacity Planning & Estimates
+
+### 9.1 Traffic Estimates
+
+| Metric                 | Daily       | Monthly      |
+| ---------------------- | ----------- | ------------ |
+| 🔍 Search Requests     | 10,000      | 300,000      |
+| 📅 Booking Initiations | 500         | 15,000       |
+| 💳 Payments Processed  | 200         | 6,000        |
+| 🔑 Auth Requests       | 2,000       | 60,000       |
+| **Total API Calls**    | **~15,000** | **~450,000** |
+
+### 9.2 Storage Projections
+
+| Table       | Row Size (avg) | Rows/Year | Annual Storage   |
+| ----------- | -------------- | --------- | ---------------- |
+| `app_user`  | 512 bytes      | 10,000    | ~5 MB            |
+| `hotel`     | 1 KB           | 500       | ~500 KB          |
+| `room`      | 512 bytes      | 2,500     | ~1.3 MB          |
+| `inventory` | 256 bytes      | 912,500   | ~234 MB          |
+| `booking`   | 512 bytes      | 72,000    | ~37 MB           |
+| **Total**   |                |           | **~280 MB/year** |
+
+### 9.3 Connection Pool Sizing
+
+```
+Pool Size Formula:
+  connections = (2 × CPU_cores) + effective_spindle_count
+
+  For 4-core server:
+    pool_size = (2 × 4) + 1 = 9 (round to 10)
+    max_overflow = 10
+    Total possible: 20 connections
 ```
 
 ---
 
-## 8. Scalability Considerations
+## 10. Security Architecture
 
-### 8.1 Current Design Supports
+### 10.1 Threat Model
 
-- **Horizontal Scaling**: Stateless API servers
-- **Database Connection Pooling**: NullPool for migrations, async pool for runtime
-- **Caching Layer Ready**: HotelMinPrice for search optimization
+| Threat                  | Risk | Mitigation                                        |
+| ----------------------- | ---- | ------------------------------------------------- |
+| 🔓 SQL Injection        | High | SQLAlchemy ORM (parameterized queries)            |
+| 🔓 XSS                  | Med  | Pydantic validation, JSON-only responses          |
+| 🔓 CSRF                 | Med  | Token-based auth (no cookies for auth)            |
+| 🔓 Brute Force Login    | High | Rate limiting (100 req/min/user)                  |
+| 🔓 Password Leak        | High | bcrypt (12 rounds), never stored in plaintext     |
+| 🔓 Token Theft          | Med  | Short expiry (30m), HTTPS only                    |
+| 🔓 Stripe Spoofing      | High | Webhook signature verification (HMAC-SHA256)      |
+| 🔓 Privilege Escalation | Med  | Role checked per-request via dependency injection |
 
-### 8.2 Future Enhancements
+### 10.2 Data Protection
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│              PRODUCTION ARCHITECTURE                │
+│              🔐 Security Layers                      │
 ├─────────────────────────────────────────────────────┤
-│                                                     │
-│   ┌──────────┐    ┌──────────┐    ┌──────────┐      │
-│   │  Nginx   │───>│  API #1  │    │  Redis   │      │
-│   │  (LB)    │───>│  API #2  │<──>│ (Cache)  │      │
-│   └──────────┘    │  API #N  │    └──────────┘      │
-│                   └────┬─────┘                      │
-│                        │                            │
-│              ┌─────────┴─────────┐                  │
-│              │   PostgreSQL      │                  │
-│              │   (Primary)       │                  │
-│              │        │          │                  │
-│              │   (Read Replicas) │                  │
-│              └───────────────────┘                  │
-│                                                     │
+│ Transport │ HTTPS / TLS 1.3                         │
+│ Auth      │ JWT (HS256) + bcrypt passwords          │
+│ AuthZ     │ RBAC (dependency-injected guards)       │
+│ Payments  │ Stripe handles PCI DSS compliance       │
+│ Secrets   │ Environment variables (.env)            │
+│ Input     │ Pydantic v2 strict validation           │
+│ DB Access │ ORM (no raw SQL)                        │
 └─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 9. Testing Strategy
+## 11. Deployment Architecture
 
-### 9.1 Test Pyramid
+### 11.1 CI/CD Pipeline
 
-```
-           ┌──────────┐
-          /   E2E     \        (Future: Playwright)
-         /    Tests    \
-        ├──────────────┤
-       /  Integration   \      (55+ tests implemented)
-      /     Tests        \
-     ├────────────────────┤
-    /     Unit Tests       \   (Service layer)
-   /________________________\
-```
+<p align="center">
+  <img src="diagrams/ci-cd-pipeline.svg" alt="CI/CD Pipeline" width="100%">
+</p>
 
-### 9.2 Test Coverage
+| Stage     | Tool                   | What it does                               |
+| --------- | ---------------------- | ------------------------------------------ |
+| 🔍 Lint   | Ruff                   | Code style, import sorting, common bugs    |
+| 🧪 Test   | Pytest + PostgreSQL 16 | 56 tests with service container + coverage |
+| 🐳 Build  | Docker Buildx          | Multi-stage build with layer caching       |
+| 📦 Push   | GHCR                   | `ghcr.io/pankajshakya627/airbnb:latest`    |
+| 🚀 Deploy | Configurable           | SSH, AWS ECS, or Railway (placeholder)     |
 
-| Category  | Tests | Coverage                     |
-| --------- | ----- | ---------------------------- |
-| Auth      | 9     | Login, signup, token refresh |
-| Hotels    | 12    | CRUD, activation, reports    |
-| Rooms     | 7     | CRUD operations              |
-| Inventory | 4     | Get, update, surge pricing   |
-| Bookings  | 7     | Full lifecycle               |
-| Users     | 11    | Profile, guest management    |
-| Browse    | 5     | Search, public info          |
-
----
-
-## 10. Deployment Architecture
-
-### 10.1 Docker Deployment
+### 11.2 Docker Architecture
 
 ```dockerfile
 # Multi-stage build
-FROM python:3.11-slim AS builder
-# ... install dependencies
-
-FROM python:3.11-slim
-# ... copy only what's needed
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0"]
+FROM python:3.12-slim AS builder    # 📦 Install dependencies
+FROM python:3.12-slim               # 🏃 Runtime (minimal image)
+HEALTHCHECK --interval=30s CMD curl -f http://localhost:8000/health
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-### 10.2 Environment Configuration
+### 11.3 Environment Matrix
 
-| Environment | DATABASE_URL    | STRIPE_API_KEY |
-| ----------- | --------------- | -------------- |
-| Development | localhost:5432  | sk*test*\*     |
-| Staging     | staging-db:5432 | sk*test*\*     |
-| Production  | prod-db:5432    | sk*live*\*     |
+| Environment    | Database        | Stripe Key  | Docker         |
+| -------------- | --------------- | ----------- | -------------- |
+| 🟢 Development | localhost:5432  | `sk_test_*` | docker-compose |
+| 🟡 Staging     | staging-db:5432 | `sk_test_*` | GHCR image     |
+| 🔴 Production  | prod-db:5432    | `sk_live_*` | GHCR image     |
 
 ---
 
-## 11. Roadmap
+## 12. Scalability Roadmap
 
-### Implemented ✅
+### 12.1 Current → Future Architecture
 
-- [x] User authentication with JWT
-- [x] Hotel/Room/Inventory CRUD
-- [x] Complete booking flow
-- [x] Stripe payment integration
-- [x] Role-based access control
-- [x] Database migrations (Alembic)
-- [x] Comprehensive test suite
-- [x] Docker containerization
+```mermaid
+flowchart LR
+    subgraph NOW["📦 Current (Monolith)"]
+        direction TB
+        A1["Single FastAPI App"]
+        A2["Single PostgreSQL"]
+        A1 --> A2
+    end
 
-### Future Enhancements 🚧
+    subgraph NEXT["🚀 Phase 2 (Scaled Monolith)"]
+        direction TB
+        LB["🔀 Nginx LB"]
+        B1["API #1"]
+        B2["API #2"]
+        REDIS["⚡ Redis Cache"]
+        PG["🐘 PostgreSQL"]
+        LB --> B1
+        LB --> B2
+        B1 --> REDIS
+        B2 --> REDIS
+        REDIS --> PG
+    end
 
-- [ ] Redis caching layer
-- [ ] Email notifications (booking confirmations)
-- [ ] Admin dashboard UI
-- [ ] Rate limiting
-- [ ] API versioning (v1, v2)
-- [ ] Search filters (amenities, price range)
-- [ ] Review/rating system
-- [ ] Multi-currency support
+    subgraph FUTURE["🌐 Phase 3 (Microservices)"]
+        direction TB
+        GW2["🛡️ API Gateway"]
+        MS1["🔑 Auth Svc"]
+        MS2["🏨 Hotel Svc"]
+        MS3["📅 Booking Svc"]
+        MS4["💳 Payment Svc"]
+        MQ["📬 Message Queue"]
+        GW2 --> MS1
+        GW2 --> MS2
+        GW2 --> MS3
+        GW2 --> MS4
+        MS3 --> MQ
+        MS4 --> MQ
+    end
+
+    NOW -->|"500 RPS\n10+ devs"| NEXT
+    NEXT -->|"5000 RPS\n50+ devs"| FUTURE
+
+    style NOW fill:#1a1a2e,stroke:#e94560,color:#eee
+    style NEXT fill:#16213e,stroke:#0f3460,color:#eee
+    style FUTURE fill:#0f3460,stroke:#00b894,color:#eee
+```
+
+### 12.2 Migration Triggers
+
+| Trigger                   | Action                                |
+| ------------------------- | ------------------------------------- |
+| > 500 concurrent users    | Add API replicas behind load balancer |
+| > 80% DB CPU              | Add read replicas                     |
+| > 10 developers           | Split into domain microservices       |
+| Global user base          | Geographic database sharding          |
+| > 1000 RPS search         | Add Elasticsearch                     |
+| Notification requirements | Add message queue (RabbitMQ / Kafka)  |
 
 ---
 
-## 12. Appendix
+## 13. Technology Stack
 
-### A. File Structure
-
-```
-AirBnbfastapi/
-├── app/
-│   ├── main.py           # FastAPI entry point
-│   ├── config.py         # Environment settings
-│   ├── database.py       # Async DB setup
-│   ├── models/           # 7 SQLAlchemy models
-│   ├── schemas/          # Pydantic DTOs
-│   ├── routers/          # 8 API routers
-│   ├── services/         # 8 business logic services
-│   ├── security/         # JWT, password, dependencies
-│   └── exceptions/       # Global error handlers
-├── tests/                # 55+ pytest tests
-├── alembic/              # Database migrations
-├── docs/                 # Documentation
-│   └── GUIDE.md          # API usage guide
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
-└── README.md
-```
-
-### B. Quick Commands
-
-```bash
-# Start server
-uvicorn app.main:app --reload
-
-# Run migrations
-alembic upgrade head
-
-# Run tests
-pytest -v
-
-# Generate new migration
-alembic revision --autogenerate -m "description"
-```
+| Category             | Technology                       | Symbol |
+| -------------------- | -------------------------------- | ------ |
+| **Framework**        | FastAPI (Python 3.12)            | ⚡     |
+| **Database**         | PostgreSQL 16                    | 🐘     |
+| **ORM**              | SQLAlchemy 2.0 (Async + asyncpg) | 📦     |
+| **Migrations**       | Alembic                          | 📐     |
+| **Validation**       | Pydantic v2                      | ✅     |
+| **Testing**          | Pytest + HTTPX (77% coverage)    | 🧪     |
+| **Payments**         | Stripe API                       | 💳     |
+| **Auth**             | JWT (PyJWT) + bcrypt             | 🔐     |
+| **Containerization** | Docker + Docker Compose          | 🐳     |
+| **CI/CD**            | GitHub Actions                   | ⚙️     |
+| **Linting**          | Ruff                             | 🔍     |
+| **Registry**         | GitHub Container Registry (GHCR) | 📦     |
 
 ---
 
-## 13. System Design Concepts & Theory
+## 14. System Design Concepts
 
-This section explains fundamental system design concepts used in this project with visual diagrams.
-
----
-
-### 13.1 CAP Theorem
-
-The CAP theorem states that a distributed system can only guarantee two of three properties:
+### 14.1 CAP Theorem
 
 ```mermaid
 graph TD
     subgraph CAP["CAP Theorem"]
-        C["🔒 Consistency<br/>All nodes see same data"]
-        A["⚡ Availability<br/>Every request gets response"]
-        P["🔗 Partition Tolerance<br/>System works despite network failures"]
+        C["🔒 Consistency\nAll nodes see same data"]
+        A["⚡ Availability\nEvery request gets response"]
+        P["🔗 Partition Tolerance\nSystem works despite network failures"]
     end
 
     C --- A
@@ -871,314 +743,116 @@ graph TD
         WHY["Payments require strong consistency"]
     end
 
-    style C fill:#e3f2fd
-    style A fill:#fff3e0
-    style P fill:#e8f5e9
-    style CP fill:#c8e6c9
+    style C fill:#1a1a2e,stroke:#74b9ff,color:#eee
+    style A fill:#1a1a2e,stroke:#fdcb6e,color:#eee
+    style P fill:#1a1a2e,stroke:#00b894,color:#eee
+    style CP fill:#16213e,stroke:#00b894,color:#eee
 ```
 
-**Our Decision**: We chose **CP (Consistency + Partition Tolerance)** because:
+**Our Decision**: **CP (Consistency + Partition Tolerance)** — Financial transactions must be consistent; a booking must never be double-sold.
 
-- Financial transactions (payments) must be consistent
-- A booking should never be double-sold
-- We sacrifice availability briefly during network partitions
+### 14.2 ACID Properties in Booking Transactions
 
----
+| Property           | How We Implement It                                  |
+| ------------------ | ---------------------------------------------------- |
+| **🔷 Atomicity**   | All inventory updates within a single DB transaction |
+| **🔷 Consistency** | Unique constraints, FK constraints, enum validation  |
+| **🔷 Isolation**   | `SELECT ... FOR UPDATE` row-level locking            |
+| **🔷 Durability**  | PostgreSQL WAL (Write-Ahead Log), fsync              |
 
-### 13.2 Database ACID Properties
+### 14.3 Caching Strategy (Future)
 
-Every booking transaction follows ACID principles:
+```
+┌─────────────────────────────────────────────────┐
+│  L1: Application Cache (in-memory)              │
+│  TTL: 1 min │ Data: User sessions               │
+├─────────────────────────────────────────────────┤
+│  L2: Redis Cache (distributed)                  │
+│  TTL: 5 min │ Data: Hotel search, room listings │
+├─────────────────────────────────────────────────┤
+│  L3: PostgreSQL (source of truth)               │
+└─────────────────────────────────────────────────┘
+```
+
+### 14.4 Database Indexing Strategy
+
+| Index                | Column(s)                   | Type      | Purpose                     |
+| -------------------- | --------------------------- | --------- | --------------------------- |
+| `ix_user_email`      | `app_user.email`            | B-Tree UQ | Fast login lookup           |
+| `ix_hotel_city`      | `hotel.city`                | B-Tree    | City-based search           |
+| `ix_inventory_date`  | `inventory.date`            | B-Tree    | Date range queries          |
+| `ix_inventory_city`  | `inventory.city`            | B-Tree    | Availability by city        |
+| `uq_hotel_room_date` | `(hotel_id, room_id, date)` | Composite | Prevent duplicate inventory |
+
+### 14.5 Circuit Breaker Pattern (Stripe)
+
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED: Normal operation
+
+    CLOSED --> OPEN: Failures > threshold (5)
+    OPEN --> HALF_OPEN: After timeout (30s)
+    HALF_OPEN --> CLOSED: ✅ Test request succeeds
+    HALF_OPEN --> OPEN: ❌ Test request fails
+
+    note right of CLOSED
+        ✅ All requests pass through
+        📊 Monitor failure rate
+    end note
+
+    note right of OPEN
+        ❌ Reject all requests immediately
+        ⏰ Wait 30s before retrying
+    end note
+```
+
+### 14.6 Saga Pattern for Distributed Bookings
+
+```mermaid
+sequenceDiagram
+    participant O as 🎯 Orchestrator
+    participant I as 📦 Inventory
+    participant P as 💳 Payment
+    participant B as 📅 Booking
+
+    rect rgb(30, 60, 40)
+        Note over O,B: ✅ SUCCESS PATH
+        O->>I: 1. Reserve inventory
+        I-->>O: ✅ Reserved
+        O->>P: 2. Process payment
+        P-->>O: ✅ Charged
+        O->>B: 3. Confirm booking
+        B-->>O: ✅ Confirmed
+    end
+
+    rect rgb(60, 30, 30)
+        Note over O,B: ❌ FAILURE → COMPENSATION
+        O->>I: 1. Reserve inventory
+        I-->>O: ✅ Reserved
+        O->>P: 2. Process payment
+        P-->>O: ❌ Failed
+        O->>I: COMPENSATE: Release inventory
+        I-->>O: ✅ Released
+    end
+```
+
+### 14.7 Event-Driven Architecture (Future)
 
 ```mermaid
 flowchart LR
-    subgraph ACID["🗄️ ACID Properties"]
-        A["🔷 Atomicity<br/>All or nothing"]
-        C["🔷 Consistency<br/>Valid state only"]
-        I["🔷 Isolation<br/>No interference"]
-        D["🔷 Durability<br/>Permanent once committed"]
+    subgraph PRODUCERS["📤 Event Producers"]
+        P1["📅 BookingService"]
+        P2["💳 CheckoutService"]
     end
 
-    subgraph BOOKING["Booking Transaction"]
-        B1["1. Check inventory"]
-        B2["2. Reserve rooms"]
-        B3["3. Create booking"]
-        B4["4. COMMIT"]
+    subgraph BROKER["📬 Message Broker"]
+        Q["RabbitMQ / Kafka"]
     end
 
-    A --> BOOKING
-    B1 --> B2 --> B3 --> B4
-
-    style A fill:#bbdefb
-    style C fill:#c8e6c9
-    style I fill:#fff9c4
-    style D fill:#f8bbd9
-```
-
-**Example**: If step 3 fails, steps 1-2 are rolled back (Atomicity).
-
----
-
-### 13.3 Horizontal vs Vertical Scaling
-
-```mermaid
-flowchart TB
-    subgraph VERTICAL["📈 Vertical Scaling (Scale Up)"]
-        V1["Small Server<br/>2 CPU, 4GB RAM"]
-        V2["Medium Server<br/>8 CPU, 32GB RAM"]
-        V3["Large Server<br/>64 CPU, 256GB RAM"]
-        V1 --> V2 --> V3
-    end
-
-    subgraph HORIZONTAL["📊 Horizontal Scaling (Scale Out)"]
-        LB["Load Balancer"]
-        S1["Server 1"]
-        S2["Server 2"]
-        S3["Server 3"]
-        S4["Server N..."]
-        LB --> S1
-        LB --> S2
-        LB --> S3
-        LB --> S4
-    end
-
-    style VERTICAL fill:#fff3e0
-    style HORIZONTAL fill:#e8f5e9
-    style LB fill:#bbdefb
-```
-
-| Aspect         | Vertical              | Horizontal              |
-| -------------- | --------------------- | ----------------------- |
-| **Cost**       | Expensive hardware    | Commodity servers       |
-| **Limit**      | Hardware ceiling      | Virtually unlimited     |
-| **Complexity** | Simple                | Requires load balancing |
-| **Downtime**   | Required for upgrades | Zero-downtime possible  |
-
-**Our Approach**: Horizontal scaling with stateless API servers.
-
----
-
-### 13.4 Load Balancing Strategies
-
-```mermaid
-flowchart TB
-    subgraph STRATEGIES["Load Balancing Algorithms"]
-        RR["🔄 Round Robin<br/>Sequential distribution"]
-        LC["📉 Least Connections<br/>Route to least busy"]
-        IP["🎯 IP Hash<br/>Sticky sessions"]
-        WRR["⚖️ Weighted RR<br/>Capacity-based"]
-    end
-
-    subgraph FLOW["Request Flow"]
-        CLIENT["👤 Client"]
-        LB["🔀 Load Balancer<br/>(Nginx)"]
-        API1["API #1"]
-        API2["API #2"]
-        API3["API #3"]
-    end
-
-    CLIENT --> LB
-    LB --> API1
-    LB --> API2
-    LB --> API3
-
-    style RR fill:#e3f2fd
-    style LC fill:#c8e6c9
-    style IP fill:#fff9c4
-    style WRR fill:#f8bbd9
-    style LB fill:#bbdefb
-```
-
-**Recommended**: Round Robin for stateless APIs, IP Hash if session affinity needed.
-
----
-
-### 13.5 Caching Patterns
-
-```mermaid
-flowchart TB
-    subgraph PATTERNS["Caching Patterns"]
-        direction TB
-        CT["📖 Cache-Through"]
-        CB["📝 Cache-Aside"]
-        WB["✍️ Write-Behind"]
-    end
-
-    subgraph CACHE_ASIDE["Cache-Aside Pattern (Our Choice)"]
-        A1["1. App checks cache"]
-        A2["2. Cache miss?"]
-        A3["3. Query database"]
-        A4["4. Store in cache"]
-        A5["5. Return data"]
-    end
-
-    A1 --> A2
-    A2 -->|Miss| A3
-    A3 --> A4
-    A4 --> A5
-    A2 -->|Hit| A5
-
-    subgraph LAYERS["Cache Layers"]
-        L1["L1: In-Memory<br/>(Application)"]
-        L2["L2: Redis<br/>(Distributed)"]
-        L3["L3: Database<br/>(Source of Truth)"]
-    end
-
-    L1 --> L2 --> L3
-
-    style CT fill:#e3f2fd
-    style CB fill:#c8e6c9
-    style WB fill:#fff9c4
-    style L2 fill:#ffcdd2
-```
-
-**Cache Invalidation Strategies**:
-
-- **TTL-based**: Expire after X minutes
-- **Event-based**: Invalidate on data change
-- **Write-through**: Update cache on every write
-
----
-
-### 13.6 API Rate Limiting
-
-```mermaid
-flowchart LR
-    subgraph ALGORITHMS["Rate Limiting Algorithms"]
-        TB["🪣 Token Bucket"]
-        LW["📊 Sliding Window"]
-        FW["📅 Fixed Window"]
-    end
-
-    subgraph TOKEN_BUCKET["Token Bucket (Recommended)"]
-        BUCKET["🪣 Bucket<br/>Capacity: 100"]
-        REFILL["⏰ Refill: 10/sec"]
-        REQUEST["📨 Request<br/>-1 token"]
-    end
-
-    REFILL --> BUCKET
-    BUCKET --> REQUEST
-
-    subgraph RESPONSE["Response"]
-        OK["✅ 200 OK<br/>Tokens available"]
-        REJECT["❌ 429 Too Many<br/>Bucket empty"]
-    end
-
-    REQUEST --> OK
-    REQUEST --> REJECT
-
-    style TB fill:#c8e6c9
-    style BUCKET fill:#bbdefb
-    style OK fill:#c8e6c9
-    style REJECT fill:#ffcdd2
-```
-
-**Our Configuration**:
-
-- 100 requests per minute per user
-- 1000 requests per minute per IP (unauthenticated)
-- Burst allowance: 20 requests
-
----
-
-### 13.7 Database Indexing
-
-```mermaid
-flowchart TB
-    subgraph WITHOUT["❌ Without Index"]
-        T1["Table Scan<br/>O(n) - Slow"]
-        T2["Check every row"]
-    end
-
-    subgraph WITH["✅ With Index"]
-        I1["B-Tree Index<br/>O(log n) - Fast"]
-        I2["Jump to matching rows"]
-    end
-
-    subgraph INDEXES["Our Indexes"]
-        IDX1["📍 hotel.city"]
-        IDX2["📅 inventory.date"]
-        IDX3["🔑 booking.user_id"]
-        IDX4["📧 user.email (unique)"]
-    end
-
-    style WITHOUT fill:#ffcdd2
-    style WITH fill:#c8e6c9
-    style IDX1 fill:#bbdefb
-    style IDX2 fill:#bbdefb
-    style IDX3 fill:#bbdefb
-    style IDX4 fill:#bbdefb
-```
-
-**Index Best Practices**:
-
-- Index columns used in WHERE clauses
-- Index foreign keys for JOIN performance
-- Avoid over-indexing (slows writes)
-- Use composite indexes for multi-column queries
-
----
-
-### 13.8 Microservices vs Monolith
-
-```mermaid
-flowchart TB
-    subgraph MONOLITH["🏛️ Monolith (Current)"]
-        M1["Single Codebase"]
-        M2["Single Deployment"]
-        M3["Shared Database"]
-        M1 --> M2 --> M3
-    end
-
-    subgraph MICRO["🧩 Microservices (Future)"]
-        S1["Auth Service"]
-        S2["Hotel Service"]
-        S3["Booking Service"]
-        S4["Payment Service"]
-        GW["API Gateway"]
-
-        GW --> S1
-        GW --> S2
-        GW --> S3
-        GW --> S4
-    end
-
-    subgraph COMPARE["Comparison"]
-        direction LR
-        CM["Monolith: Simple, Fast to start"]
-        MS["Microservices: Scalable, Complex"]
-    end
-
-    style MONOLITH fill:#e3f2fd
-    style MICRO fill:#e8f5e9
-    style GW fill:#fff9c4
-```
-
-**When to Migrate**:
-
-- Team size > 10 developers
-- Different scaling needs per service
-- Independent deployment required
-- Different technology stacks needed
-
----
-
-### 13.9 Event-Driven Architecture
-
-```mermaid
-flowchart LR
-    subgraph PRODUCERS["Event Producers"]
-        P1["Booking Service"]
-        P2["Payment Service"]
-    end
-
-    subgraph BROKER["Message Broker"]
-        Q["📬 Event Queue<br/>(RabbitMQ/Kafka)"]
-    end
-
-    subgraph CONSUMERS["Event Consumers"]
+    subgraph CONSUMERS["📥 Event Consumers"]
         C1["📧 Email Service"]
         C2["📊 Analytics"]
-        C3["🔔 Notification"]
+        C3["🔔 Push Notifications"]
     end
 
     P1 -->|BookingCreated| Q
@@ -1187,70 +861,31 @@ flowchart LR
     Q --> C2
     Q --> C3
 
-    style Q fill:#fff9c4
-    style P1 fill:#bbdefb
-    style P2 fill:#bbdefb
-    style C1 fill:#c8e6c9
-    style C2 fill:#c8e6c9
-    style C3 fill:#c8e6c9
+    style Q fill:#16213e,stroke:#fdcb6e,color:#eee
+    style PRODUCERS fill:#1a1a2e,stroke:#0f3460,color:#eee
+    style CONSUMERS fill:#1a1a2e,stroke:#00b894,color:#eee
 ```
 
-**Event Types in Our System**:
+### 14.8 Horizontal vs Vertical Scaling
 
-- `BookingCreated` → Send confirmation email
-- `PaymentProcessed` → Update inventory
-- `BookingCancelled` → Release inventory, notify user
+| Aspect         | 📈 Vertical (Scale Up) | 📊 Horizontal (Scale Out) |
+| -------------- | ---------------------- | ------------------------- |
+| **Method**     | Bigger server          | More servers              |
+| **Cost**       | Expensive hardware     | Commodity servers         |
+| **Limit**      | Hardware ceiling       | Virtually unlimited       |
+| **Complexity** | Simple                 | Requires load balancing   |
+| **Downtime**   | Required for upgrades  | Zero-downtime possible    |
 
----
+**Our Approach**: Horizontal scaling with stateless API servers + load balancer.
 
-### 13.10 Circuit Breaker Pattern
-
-Protects against cascading failures when external services fail.
-
-```mermaid
-stateDiagram-v2
-    [*] --> CLOSED: Normal operation
-
-    CLOSED --> OPEN: Failures > threshold
-    OPEN --> HALF_OPEN: After timeout
-    HALF_OPEN --> CLOSED: Success
-    HALF_OPEN --> OPEN: Failure
-
-    note right of CLOSED
-        ✅ Requests pass through
-        📊 Monitor failure rate
-    end note
-
-    note right of OPEN
-        ❌ Reject all requests
-        ⏰ Wait for timeout
-    end note
-
-    note right of HALF_OPEN
-        🧪 Allow test requests
-        📈 Check if recovered
-    end note
-```
-
-**Implementation for Stripe**:
-
-```python
-# Circuit breaker for Stripe API
-@circuit_breaker(failure_threshold=5, timeout=30)
-async def create_checkout_session(booking):
-    return await stripe.checkout.Session.create(...)
-```
-
----
-
-### 13.11 Database Replication
+### 14.9 Database Replication
 
 ```mermaid
 flowchart TB
-    subgraph REPLICATION["Database Replication"]
-        PRIMARY["🔵 Primary<br/>(Read + Write)"]
-        REPLICA1["⚪ Replica 1<br/>(Read Only)"]
-        REPLICA2["⚪ Replica 2<br/>(Read Only)"]
+    subgraph REPLICATION["🐘 PostgreSQL Replication"]
+        PRIMARY["🔵 Primary\n(Read + Write)"]
+        R1["⚪ Replica 1\n(Read Only)"]
+        R2["⚪ Replica 2\n(Read Only)"]
     end
 
     subgraph ROUTING["Query Routing"]
@@ -1259,591 +894,120 @@ flowchart TB
     end
 
     WRITE --> PRIMARY
-    PRIMARY -->|Async Replication| REPLICA1
-    PRIMARY -->|Async Replication| REPLICA2
-    READ --> REPLICA1
-    READ --> REPLICA2
+    PRIMARY -->|"Async WAL Streaming"| R1
+    PRIMARY -->|"Async WAL Streaming"| R2
+    READ --> R1
+    READ --> R2
 
-    style PRIMARY fill:#bbdefb
-    style REPLICA1 fill:#e0e0e0
-    style REPLICA2 fill:#e0e0e0
-    style WRITE fill:#fff9c4
-    style READ fill:#c8e6c9
-```
-
-**Benefits**:
-
-- Read scalability (distribute read load)
-- High availability (failover to replica)
-- Geographic distribution (reduce latency)
-
----
-
-### 13.12 Saga Pattern for Distributed Transactions
-
-When a booking spans multiple services, we use the Saga pattern:
-
-```mermaid
-sequenceDiagram
-    participant O as Orchestrator
-    participant I as Inventory
-    participant P as Payment
-    participant B as Booking
-
-    O->>I: 1. Reserve Inventory
-    I-->>O: ✅ Reserved
-
-    O->>P: 2. Process Payment
-    P-->>O: ✅ Charged
-
-    O->>B: 3. Create Booking
-    B-->>O: ✅ Created
-
-    Note over O,B: All steps successful!
-
-    rect rgb(255, 200, 200)
-        Note over O,B: FAILURE SCENARIO
-        O->>I: 1. Reserve Inventory
-        I-->>O: ✅ Reserved
-        O->>P: 2. Process Payment
-        P-->>O: ❌ Failed
-        O->>I: COMPENSATE: Release Inventory
-        I-->>O: ✅ Released
-    end
-```
-
-**Saga Types**:
-
-- **Choreography**: Each service triggers next (event-driven)
-- **Orchestration**: Central coordinator manages steps (our approach)
-
----
-
-### 13.13 Idempotency
-
-Ensuring the same operation produces the same result when repeated.
-
-```mermaid
-flowchart TB
-    subgraph PROBLEM["❌ Without Idempotency"]
-        R1["Request 1: Create Booking"]
-        R2["Request 1 (retry): Create Booking"]
-        D["💥 Duplicate Booking!"]
-        R1 --> D
-        R2 --> D
-    end
-
-    subgraph SOLUTION["✅ With Idempotency Key"]
-        K1["Request 1 + Key: abc123"]
-        K2["Request 1 (retry) + Key: abc123"]
-        C["Check: Key exists?"]
-        NEW["Create new booking"]
-        RET["Return existing"]
-
-        K1 --> C
-        K2 --> C
-        C -->|No| NEW
-        C -->|Yes| RET
-    end
-
-    style PROBLEM fill:#ffcdd2
-    style SOLUTION fill:#c8e6c9
-    style D fill:#ef5350
-```
-
-**Implementation**:
-
-```python
-@app.post("/bookings/init")
-async def init_booking(request, idempotency_key: str = Header(None)):
-    existing = await cache.get(idempotency_key)
-    if existing:
-        return existing  # Return cached result
-
-    booking = await create_booking(request)
-    await cache.set(idempotency_key, booking, ttl=3600)
-    return booking
+    style PRIMARY fill:#1a1a2e,stroke:#74b9ff,color:#eee
+    style R1 fill:#2d3436,stroke:#636e72,color:#eee
+    style R2 fill:#2d3436,stroke:#636e72,color:#eee
 ```
 
 ---
 
-### 13.14 Eventual Consistency
+## 15. Interview Questions & Answers
 
-In distributed systems, data becomes consistent over time (not immediately).
+### 15.1 Architecture & Design
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant API as API Server
-    participant DB as Primary DB
-    participant R as Read Replica
-    participant C as Cache
+#### Q1: Why a layered monolith?
 
-    U->>API: Update profile
-    API->>DB: Write to primary
-    DB-->>API: ✅ Committed
+**Separation of Concerns** — Each layer has a single responsibility. **Testability** — Layers tested independently. **Maintainability** — Swapping PostgreSQL only affects data layer. Split into microservices when team > 10 devs or scaling needs diverge.
 
-    par Async Replication
-        DB->>R: Replicate data
-    and Cache Invalidation
-        API->>C: Invalidate cache
-    end
+#### Q2: How to handle 1M concurrent booking requests?
 
-    Note over R,C: 50-200ms delay (eventual consistency)
+1. **Horizontal Scaling** — N API instances behind Nginx
+2. **Redis Caching** — Hotel search results (TTL: 5min)
+3. **DB Read Replicas** — Offload search queries
+4. **Message Queue** — Async booking processing
+5. **Rate Limiting** — Token bucket (100 req/min/user)
 
-    U->>API: Read profile
-    alt Cache hit
-        API->>C: Get from cache
-    else Cache miss
-        API->>R: Get from replica
-        Note over API,R: Might return stale data briefly
-    end
-```
+#### Q3: Why FastAPI over Django/Flask?
 
-**Trade-off**: We accept eventual consistency for reads (search results) but require strong consistency for writes (payments).
+| Feature         | FastAPI     | Flask  | Django     |
+| --------------- | ----------- | ------ | ---------- |
+| Async Native    | ✅          | ❌     | ⚠️ Partial |
+| Auto Docs       | ✅ Swagger  | ❌     | ❌         |
+| Type Validation | ✅ Pydantic | ❌     | ❌         |
+| Performance     | ⭐⭐⭐⭐⭐  | ⭐⭐⭐ | ⭐⭐       |
 
----
+### 15.2 Database Design
 
-## 14. System Design Interview Questions & Answers
+#### Q4: Why separate Inventory from Room?
 
-This section covers common interview questions related to this hotel booking system design. Use these to prepare for HLD/system design interviews.
+**Normalization** — Room is static (type, capacity), Inventory is dynamic (daily price, availability). Enables **dynamic pricing** per day, **historical tracking**, and **no schema changes** when adding dates.
 
----
+#### Q5: How to prevent double booking?
 
-### 13.1 Architecture & Design Questions
+1. `SELECT ... FOR UPDATE` — Row-level pessimistic locking
+2. Atomic update: `UPDATE inventory SET reserved_count = reserved_count + 1 WHERE available > 0`
+3. `UNIQUE(hotel_id, room_id, date)` constraint
+4. Application-level: Reserve → Pay → Confirm (with 15min timeout)
 
-#### Q1: Why did you choose a layered architecture for this system?
+#### Q6: Database sharding strategy?
 
-**Answer:**
-A layered architecture provides:
+**Geographic sharding by city/region** — US shard, EU shard, APAC shard. Cross-shard search via Elasticsearch index.
 
-- **Separation of Concerns**: Each layer has a single responsibility (routers handle HTTP, services handle business logic, models handle data)
-- **Testability**: Each layer can be tested independently with mocks
-- **Maintainability**: Changes in one layer don't affect others (e.g., switching from PostgreSQL to MySQL only affects the data layer)
-- **Scalability**: Layers can be scaled independently if needed
+### 15.3 Security
 
-```
-Routers → Services → Models → Database
-   ↓         ↓          ↓
-Validation  Logic    Persistence
-```
+#### Q7: Why JWT over sessions?
 
-#### Q2: How would you handle 1 million concurrent booking requests?
+| Aspect      | JWT                    | Sessions                  |
+| ----------- | ---------------------- | ------------------------- |
+| Stateless   | ✅ No server storage   | ❌ Requires session store |
+| Scalability | ✅ Any server verifies | ❌ Need shared store      |
+| Revocation  | ❌ Use short expiry    | ✅ Easy to invalidate     |
 
-**Answer:**
+#### Q8: Attack protection?
 
-1. **Horizontal Scaling**: Deploy multiple API instances behind a load balancer (Nginx)
-2. **Database Optimization**:
-   - Connection pooling (async pools)
-   - Read replicas for search queries
-   - Indexing on frequently queried columns (city, date, hotel_id)
-3. **Caching**:
-   - Redis for hotel search results (TTL: 5 min)
-   - Cache inventory availability
-4. **Message Queue**: Use RabbitMQ/Kafka for async booking processing
-5. **Rate Limiting**: Prevent abuse with token bucket algorithm
+| Attack          | Protection                             |
+| --------------- | -------------------------------------- |
+| SQL Injection   | SQLAlchemy ORM (parameterized queries) |
+| XSS             | Pydantic validation, JSON responses    |
+| Brute Force     | Rate limiting, bcrypt (12 rounds)      |
+| Token Theft     | Short expiry (30min), HTTPS only       |
+| Stripe Spoofing | Webhook HMAC-SHA256 signature check    |
 
-```mermaid
-flowchart LR
-    LB[Load Balancer] --> API1[API #1]
-    LB --> API2[API #2]
-    LB --> APIN[API #N]
-    API1 --> REDIS[(Redis Cache)]
-    API2 --> REDIS
-    APIN --> REDIS
-    REDIS --> PRIMARY[(PostgreSQL Primary)]
-    PRIMARY --> REPLICA[(Read Replica)]
-```
+### 15.4 Booking & Payments
 
-#### Q3: Why FastAPI over Flask or Django?
+#### Q9: Why multiple booking statuses?
 
-**Answer:**
-| Feature | FastAPI | Flask | Django |
-|---------|---------|-------|--------|
-| **Async Native** | ✅ Yes | ❌ No | ⚠️ Partial |
-| **Auto Docs** | ✅ Swagger + ReDoc | ❌ Manual | ❌ Manual |
-| **Type Validation** | ✅ Pydantic | ❌ Manual | ❌ Manual |
-| **Performance** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
-| **Learning Curve** | Medium | Easy | Steep |
+State machine prevents invalid transitions: `RESERVED → GUESTS_ADDED → PAYMENTS_PENDING → CONFIRMED`. Each state has specific inventory operations and timeout behaviors.
 
-FastAPI's async support allows handling thousands of concurrent connections with fewer resources.
+#### Q10: Payment failure handling?
+
+1. `checkout.session.completed` → CONFIRMED
+2. `checkout.session.expired` → CANCELLED (inventory released)
+3. Idempotency via `payment_session_id` (UNIQUE constraint)
+
+#### Q11: Server crash mid-booking?
+
+1. **DB Transactions** — Atomic inventory updates (rollback on failure)
+2. **Compensating Actions** — Background job releases stale reservations after 15min
+3. **Saga Pattern** — Orchestrated compensation for distributed failures
+
+### 15.5 Quick Fire
+
+| Question                  | Answer                                         |
+| ------------------------- | ---------------------------------------------- |
+| CAP theorem choice?       | CP — Payments require strong consistency       |
+| SQL vs NoSQL?             | SQL — ACID transactions for financial data     |
+| Sync vs Async processing? | Async for payments (webhooks), sync for search |
+| Pagination strategy?      | Offset-based; cursor-based at scale            |
+| API rate limiting?        | Token bucket: 100 req/min/user                 |
+| Password storage?         | bcrypt, 12 salt rounds                         |
+| Secrets management?       | .env → HashiCorp Vault (production)            |
+| Database migrations?      | Alembic with version control                   |
+| Testing strategy?         | Unit → Integration → E2E pyramid               |
+| CI/CD pipeline?           | GitHub Actions → Docker → GHCR                 |
+| Monitoring?               | Prometheus + Grafana + ELK + Jaeger            |
 
 ---
 
-### 13.2 Database Design Questions
+<div align="center">
 
-#### Q4: Why separate Inventory from Room table?
+**Document Version: 2.0** | **Last Updated: 2026-02-17** | **Status: ✅ Approved**
 
-**Answer:**
-**Normalization Principle**: Inventory represents a many-to-one relationship (one room type has many daily inventory records).
+_Built with ⚡ FastAPI • 🐘 PostgreSQL • 💳 Stripe • 🐳 Docker_
 
-Benefits:
-
-- **Dynamic Pricing**: Each day can have different prices/surge factors
-- **Availability Tracking**: Separate counts for booked vs reserved
-- **Historical Data**: Past inventory data preserved for analytics
-- **No Schema Changes**: Adding new days doesn't modify the room table
-
-```
-Room (static): type, base_price, capacity
-Inventory (dynamic): date, price, surge_factor, booked_count
-```
-
-#### Q5: How do you prevent double booking (race condition)?
-
-**Answer:**
-Multiple strategies implemented:
-
-1. **Database-Level Locking**:
-
-```sql
-SELECT * FROM inventory WHERE room_id = 1 AND date = '2026-03-01' FOR UPDATE;
-```
-
-2. **Atomic Updates**:
-
-```sql
-UPDATE inventory
-SET reserved_count = reserved_count + 1
-WHERE room_id = 1 AND date = '2026-03-01'
-  AND (total_count - booked_count - reserved_count) >= 1;
-```
-
-3. **Transaction Isolation**: Use `SERIALIZABLE` isolation for booking operations
-
-4. **Application-Level**: Check availability → Reserve → Confirm (with timeout)
-
-```mermaid
-sequenceDiagram
-    participant U1 as User 1
-    participant U2 as User 2
-    participant DB as Database
-
-    U1->>DB: SELECT FOR UPDATE (locks row)
-    U2->>DB: SELECT FOR UPDATE (waits...)
-    U1->>DB: UPDATE reserved_count = 1
-    U1->>DB: COMMIT
-    DB-->>U2: Lock released
-    U2->>DB: SELECT FOR UPDATE
-    Note over U2,DB: reserved_count now = 1, availability reduced
-```
-
-#### Q6: How would you shard the database for global scale?
-
-**Answer:**
-**Sharding Strategy**: Geographic sharding by city/region
-
-```
-┌─────────────────────────────────────────────┐
-│           Global Router / Load Balancer     │
-├─────────────┬─────────────┬─────────────────┤
-│  Shard US   │  Shard EU   │   Shard APAC    │
-│  (NYC, LA)  │ (London,Paris) (Tokyo, Sydney)│
-├─────────────┼─────────────┼─────────────────┤
-│ PostgreSQL  │ PostgreSQL  │   PostgreSQL    │
-└─────────────┴─────────────┴─────────────────┘
-```
-
-**Cross-shard queries**: For global search, use:
-
-- Elasticsearch for aggregated search index
-- Async replication to central analytics DB
-
----
-
-### 13.3 Authentication & Security Questions
-
-#### Q7: Why JWT over session-based auth?
-
-**Answer:**
-| Aspect | JWT | Sessions |
-|--------|-----|----------|
-| **Stateless** | ✅ No server storage | ❌ Requires session store |
-| **Scalability** | ✅ Any server can verify | ❌ Need shared session store |
-| **Mobile-friendly** | ✅ Easy to use | ⚠️ Cookie handling issues |
-| **Revocation** | ❌ Hard (use blacklist) | ✅ Easy to invalidate |
-
-Our choice: JWT with short expiry (30 min) + refresh tokens for security.
-
-#### Q8: How do you handle token refresh securely?
-
-**Answer:**
-
-1. **Separate Tokens**:
-   - Access Token: Short-lived (30 min), sent in header
-   - Refresh Token: Long-lived (7 days), HTTP-only cookie
-
-2. **Refresh Flow**:
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant A as API
-    participant DB as Database
-
-    C->>A: Request with expired access token
-    A-->>C: 401 Unauthorized
-    C->>A: POST /auth/refresh (with refresh cookie)
-    A->>A: Validate refresh token
-    A->>DB: Check if token revoked
-    A-->>C: New access token
-```
-
-3. **Token Rotation**: Issue new refresh token on each refresh (refresh token rotation)
-
-#### Q9: How do you protect against common attacks?
-
-**Answer:**
-| Attack | Protection |
-|--------|------------|
-| **SQL Injection** | SQLAlchemy ORM (parameterized queries) |
-| **XSS** | Pydantic validation, proper encoding |
-| **CSRF** | Same-site cookies, token-based auth |
-| **Brute Force** | Rate limiting, account lockout |
-| **Password Attacks** | Bcrypt (12 rounds), password policy |
-
----
-
-### 13.4 Booking Flow Questions
-
-#### Q10: Why do you have multiple booking statuses?
-
-**Answer:**
-State machine prevents invalid transitions and tracks booking lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> RESERVED: Availability checked
-    RESERVED --> GUESTS_ADDED: Guest info provided
-    GUESTS_ADDED --> PAYMENTS_PENDING: Payment initiated
-    PAYMENTS_PENDING --> CONFIRMED: Payment success
-    PAYMENTS_PENDING --> CANCELLED: Payment failed
-    RESERVED --> EXPIRED: 15 min timeout
-
-    CONFIRMED --> [*]: Booking complete
-    CANCELLED --> [*]: Resources released
-    EXPIRED --> [*]: Auto-cleanup
-```
-
-**Business Logic**:
-
-- `RESERVED`: Inventory locked, awaiting guest info
-- `GUESTS_ADDED`: Ready for payment
-- `PAYMENTS_PENDING`: Waiting for Stripe webhook
-- `CONFIRMED`: Payment received, booking complete
-
-#### Q11: How do you handle payment failures?
-
-**Answer:**
-
-1. **Stripe Webhook Events**:
-   - `checkout.session.completed` → CONFIRMED
-   - `checkout.session.expired` → CANCELLED
-   - `payment_intent.payment_failed` → CANCELLED
-
-2. **Retry Logic**:
-   - User can retry payment within 15 min
-   - After timeout, inventory released automatically
-
-3. **Idempotency**:
-   - Store Stripe session_id in booking
-   - Webhook handler checks if already processed
-
-```python
-# Webhook handler (idempotent)
-if booking.payment_session_id == event.session_id:
-    if booking.status != "CONFIRMED":
-        booking.status = "CONFIRMED"
-        # Commit only if status actually changed
-```
-
-#### Q12: What happens if the server crashes mid-booking?
-
-**Answer:**
-**Data Consistency Strategies**:
-
-1. **Database Transactions**: All inventory updates atomic
-2. **Compensating Actions**: Background job releases stale reservations
-3. **Saga Pattern** (for distributed systems):
-
-```mermaid
-flowchart LR
-    subgraph SAGA["Booking Saga"]
-        RESERVE["1. Reserve Inventory"]
-        CHARGE["2. Charge Payment"]
-        CONFIRM["3. Confirm Booking"]
-    end
-
-    RESERVE -->|Success| CHARGE
-    CHARGE -->|Success| CONFIRM
-    CHARGE -->|Failure| UNDO_RESERVE["Undo: Release Inventory"]
-```
-
----
-
-### 13.5 Scalability & Performance Questions
-
-#### Q13: What's your caching strategy?
-
-**Answer:**
-**Multi-Level Caching**:
-
-```
-┌─────────────────────────────────────────┐
-│  Level 1: Application Cache (in-memory) │
-│  TTL: 1 min | Data: User sessions       │
-├─────────────────────────────────────────┤
-│  Level 2: Redis Cache                   │
-│  TTL: 5 min | Data: Hotel search, rooms │
-├─────────────────────────────────────────┤
-│  Level 3: Database (PostgreSQL)         │
-│  Source of truth                        │
-└─────────────────────────────────────────┘
-```
-
-**Cache Invalidation**:
-
-- **Time-based**: TTL expiry
-- **Event-based**: Publish inventory changes via Redis pub/sub
-- **Write-through**: Update cache on database writes
-
-#### Q14: How would you implement search with filters?
-
-**Answer:**
-**Current**: PostgreSQL with indexes on (city, date)
-
-**At Scale**: Elasticsearch
-
-```mermaid
-flowchart TB
-    subgraph SEARCH["Search Architecture"]
-        API["API Gateway"]
-        ES["Elasticsearch Cluster"]
-        PG[(PostgreSQL)]
-        SYNC["CDC Sync (Debezium)"]
-    end
-
-    API -->|Search queries| ES
-    PG -->|Change Data Capture| SYNC
-    SYNC -->|Index updates| ES
-    API -->|Writes| PG
-```
-
-**Filters Supported**:
-
-- City, dates, guest count
-- Price range (min/max)
-- Amenities (wifi, pool, gym)
-- Star rating
-- Distance from location
-
-#### Q15: How do you monitor and debug production issues?
-
-**Answer:**
-**Observability Stack**:
-
-| Layer       | Tool                 | Purpose                      |
-| ----------- | -------------------- | ---------------------------- |
-| **Metrics** | Prometheus + Grafana | Request latency, error rates |
-| **Logging** | ELK Stack            | Structured JSON logs         |
-| **Tracing** | Jaeger/OpenTelemetry | Distributed request tracing  |
-| **Alerts**  | PagerDuty            | On-call notifications        |
-
-**Key Metrics**:
-
-- Booking success rate
-- Payment webhook latency
-- Database query times
-- API 5xx error rate
-
----
-
-### 13.6 System Trade-offs Questions
-
-#### Q16: What trade-offs did you make?
-
-**Answer:**
-| Decision | Trade-off | Rationale |
-|----------|-----------|-----------|
-| **Async Python** | Complexity vs Performance | High concurrency needs justify async |
-| **JWT Auth** | Revocation difficulty vs Scalability | Short expiry mitigates risk |
-| **PostgreSQL** | Scaling vs Features | ACID compliance critical for payments |
-| **Monolith** | Simplicity vs Flexibility | Start simple, split later if needed |
-| **15 min reservation** | UX vs Inventory efficiency | Balance between user experience and overbooking prevention |
-
-#### Q17: When would you split into microservices?
-
-**Answer:**
-Split when:
-
-1. **Team Scale**: >10 developers on same codebase
-2. **Independent Deployment**: Need to deploy services separately
-3. **Different Scaling Needs**: Search scales 10x more than booking
-4. **Technology Diversity**: Need different languages/databases
-
-**Potential Services**:
-
-```
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│ Auth Service│  │Hotel Service│  │Booking Svc  │
-├─────────────┤  ├─────────────┤  ├─────────────┤
-│ User mgmt   │  │ CRUD hotels │  │ Reservations│
-│ JWT tokens  │  │ Search      │  │ Payments    │
-│ Roles       │  │ Inventory   │  │ Cancellation│
-└─────────────┘  └─────────────┘  └─────────────┘
-```
-
----
-
-### 13.7 API Design Questions
-
-#### Q18: Why REST over GraphQL?
-
-**Answer:**
-| Aspect | REST (Our Choice) | GraphQL |
-|--------|-------------------|---------|
-| **Caching** | ✅ HTTP caching easy | ⚠️ Complex |
-| **Learning Curve** | ✅ Simple | ⚠️ Steeper |
-| **Overfetching** | ⚠️ Fixed responses | ✅ Client specifies |
-| **N+1 Problem** | ✅ Controlled | ⚠️ Needs dataloader |
-| **Tooling** | ✅ Mature | ⚠️ Growing |
-
-REST is sufficient for this use case. GraphQL adds complexity without significant benefit.
-
-#### Q19: How do you version your API?
-
-**Answer:**
-**Strategy**: URL versioning (future implementation)
-
-```
-/v1/hotels/search  → Current stable
-/v2/hotels/search  → New features (beta)
-```
-
-**Deprecation Policy**:
-
-1. Announce 6 months before removal
-2. Return `Deprecation` header
-3. Maintain old version for transition period
-
----
-
-### 13.8 Quick Fire Questions
-
-| Question                      | Answer                                                                |
-| ----------------------------- | --------------------------------------------------------------------- |
-| **CAP theorem choice?**       | CP (Consistency + Partition Tolerance) - Payments require consistency |
-| **SQL vs NoSQL?**             | SQL - ACID transactions for financial data                            |
-| **Sync vs Async processing?** | Async for payments (webhooks), sync for search                        |
-| **Pagination strategy?**      | Offset-based for simplicity, cursor for scale                         |
-| **API rate limiting?**        | Token bucket: 100 req/min per user                                    |
-| **Password storage?**         | Bcrypt with 12 rounds                                                 |
-| **Secrets management?**       | Environment variables → HashiCorp Vault (production)                  |
-| **Database migrations?**      | Alembic with version control                                          |
-| **Testing strategy?**         | Unit → Integration → E2E pyramid                                      |
-| **CI/CD pipeline?**           | GitHub Actions → Docker → Kubernetes                                  |
-
----
-
-_Document Version: 1.1_  
-_Last Updated: 2026-02-08_
+</div>
