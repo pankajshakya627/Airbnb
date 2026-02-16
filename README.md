@@ -1,8 +1,23 @@
-# AirBnb FastAPI Backend
+<div align="center">
+
+# 🏨 AirBnb FastAPI Backend
+
+**Production-ready Hotel Booking API built with FastAPI, async SQLAlchemy & PostgreSQL**
+
+[![CI Pipeline](https://github.com/pankajshakya627/Airbnb/actions/workflows/ci.yml/badge.svg)](https://github.com/pankajshakya627/Airbnb/actions/workflows/ci.yml)
+[![CD Pipeline](https://github.com/pankajshakya627/Airbnb/actions/workflows/deploy.yml/badge.svg)](https://github.com/pankajshakya627/Airbnb/actions/workflows/deploy.yml)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688.svg)](https://fastapi.tiangolo.com)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+</div>
+
+---
 
 ## 🏨 Project Overview
 
-A robust, production-ready Hotel Management & Booking System backend built with **FastAPI**. This project is a complete conversion of a legacy Spring Boot application to a modern, high-performance Python architecture. It features secure authentication, role-based access control, comprehensive booking flows, and Stripe payment integration.
+A robust, production-ready Hotel Management & Booking System backend built with **FastAPI**. This project is a complete conversion of a legacy Spring Boot application to a modern, high-performance Python architecture. It features secure authentication, role-based access control, comprehensive booking flows, Stripe payment integration, and a full CI/CD pipeline with GitHub Actions & Docker.
 
 ## ✨ Key Features
 
@@ -13,34 +28,243 @@ A robust, production-ready Hotel Management & Booking System backend built with 
 - **Payment Integration**: Seamless Stripe checkout integration with webhook handling.
 - **Search & Filtering**: Optimized search functionality for finding available hotels by city and dates.
 - **Database Migrations**: Automated schema management using Alembic.
-- **Dockerized**: Fully containerized setup for easy deployment.
+- **Dockerized**: Fully containerized setup with health checks and multi-stage builds.
+- **CI/CD Pipeline**: Automated linting, testing, Docker build & push via GitHub Actions.
+- **Code Quality**: Enforced with Ruff linter/formatter and 77% test coverage.
 
 ## 🛠️ Tech Stack
 
-- **Framework**: FastAPI (Python 3.11+)
-- **Database**: PostgreSQL 14+
-- **ORM**: SQLAlchemy (Async)
-- **Migrations**: Alembic
-- **Validation**: Pydantic
-- **Testing**: Pytest & HTTPX
-- **Payments**: Stripe API
-- **Containerization**: Docker & Docker Compose
+| Category             | Technology                            |
+| -------------------- | ------------------------------------- |
+| **Framework**        | FastAPI (Python 3.12)                 |
+| **Database**         | PostgreSQL 16                         |
+| **ORM**              | SQLAlchemy 2.0 (Async + asyncpg)      |
+| **Migrations**       | Alembic                               |
+| **Validation**       | Pydantic v2                           |
+| **Testing**          | Pytest + HTTPX (77% coverage)         |
+| **Payments**         | Stripe API                            |
+| **CI/CD**            | GitHub Actions                        |
+| **Containerization** | Docker (multi-stage) + Docker Compose |
+| **Code Quality**     | Ruff (linter + formatter)             |
+| **Registry**         | GitHub Container Registry (GHCR)      |
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TB
+    subgraph Client["🌐 Client Layer"]
+        WEB["Web App"]
+        MOB["Mobile App"]
+        API_DOC["Swagger /docs"]
+    end
+
+    subgraph Gateway["🔐 API Gateway"]
+        FP["FastAPI\n+ CORS Middleware"]
+        JWT["JWT Auth\n+ RBAC"]
+    end
+
+    subgraph Routers["📡 Router Layer"]
+        direction LR
+        R1["Auth"]
+        R2["Hotels"]
+        R3["Rooms"]
+        R4["Bookings"]
+        R5["Inventory"]
+        R6["Browse"]
+        R7["Users"]
+        R8["Webhooks"]
+    end
+
+    subgraph Services["⚙️ Service Layer"]
+        direction LR
+        S1["AuthService"]
+        S2["HotelService"]
+        S3["BookingService"]
+        S4["InventoryService"]
+        S5["CheckoutService"]
+    end
+
+    subgraph Data["💾 Data Layer"]
+        ORM["SQLAlchemy\nAsync ORM"]
+        PG[("PostgreSQL 16")]
+    end
+
+    subgraph External["🌍 External"]
+        STRIPE["Stripe API"]
+    end
+
+    Client --> Gateway
+    FP --> JWT
+    JWT --> Routers
+    Routers --> Services
+    Services --> ORM
+    ORM --> PG
+    S5 --> STRIPE
+
+    style Client fill:#1a1a2e,stroke:#e94560,color:#eee
+    style Gateway fill:#16213e,stroke:#0f3460,color:#eee
+    style Routers fill:#0f3460,stroke:#533483,color:#eee
+    style Services fill:#533483,stroke:#e94560,color:#eee
+    style Data fill:#1a1a2e,stroke:#e94560,color:#eee
+    style External fill:#16213e,stroke:#0f3460,color:#eee
+```
+
+---
+
+## 🔄 Booking Flow
+
+```mermaid
+sequenceDiagram
+    actor Guest
+    participant API as FastAPI
+    participant BS as BookingService
+    participant INV as Inventory
+    participant DB as PostgreSQL
+    participant PAY as Stripe
+
+    rect rgb(30, 40, 60)
+        Note over Guest,DB: 1️⃣ Search & Reserve
+        Guest->>API: POST /bookings/init
+        API->>BS: initialise_booking()
+        BS->>DB: Check availability
+        DB-->>BS: Available ✅
+        BS->>INV: Reserve rooms
+        INV->>DB: UPDATE reserved_count
+        BS->>DB: INSERT booking (RESERVED)
+        DB-->>API: Booking created
+        API-->>Guest: {status: RESERVED, amount: $599}
+    end
+
+    rect rgb(40, 50, 70)
+        Note over Guest,PAY: 2️⃣ Add Guests & Pay
+        Guest->>API: POST /bookings/{id}/addGuests
+        API->>DB: Link guests → booking
+        API-->>Guest: {status: GUESTS_ADDED}
+        Guest->>API: POST /bookings/{id}/payments
+        API->>PAY: Create checkout session
+        PAY-->>API: session_url
+        API-->>Guest: {session_url: "https://stripe.com/..."}
+    end
+
+    rect rgb(30, 60, 40)
+        Note over PAY,DB: 3️⃣ Payment Confirmation
+        PAY->>API: POST /webhook (payment.success)
+        API->>BS: confirm_booking()
+        BS->>INV: Move reserved → booked
+        BS->>DB: UPDATE status = CONFIRMED
+    end
+```
+
+---
+
+## 🗄️ Database Schema
+
+```mermaid
+erDiagram
+    USERS ||--o{ BOOKINGS : creates
+    USERS ||--o{ HOTELS : owns
+    USERS ||--o{ GUESTS : manages
+    HOTELS ||--o{ ROOMS : contains
+    HOTELS ||--o{ INVENTORY : tracks
+    ROOMS ||--o{ INVENTORY : has
+    ROOMS ||--o{ BOOKINGS : reserved_in
+    BOOKINGS }o--o{ GUESTS : includes
+
+    USERS {
+        int id PK
+        string email UK
+        string password
+        string name
+        enum gender
+        date date_of_birth
+        array roles
+    }
+
+    HOTELS {
+        int id PK
+        string name
+        string city
+        array photos
+        array amenities
+        json contact_info
+        bool active
+        int owner_id FK
+    }
+
+    ROOMS {
+        int id PK
+        string type
+        decimal base_price
+        array photos
+        array amenities
+        int total_count
+        int capacity
+        int hotel_id FK
+    }
+
+    INVENTORY {
+        int id PK
+        date date
+        int book_count
+        int reserved_count
+        int total_count
+        decimal surge_factor
+        decimal price
+        bool closed
+        int hotel_id FK
+        int room_id FK
+    }
+
+    BOOKINGS {
+        int id PK
+        int rooms_count
+        date check_in_date
+        date check_out_date
+        enum booking_status
+        decimal amount
+        int hotel_id FK
+        int room_id FK
+        int user_id FK
+    }
+
+    GUESTS {
+        int id PK
+        string name
+        enum gender
+        int age
+        int user_id FK
+    }
+```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Python 3.11+
-- PostgreSQL 14+
+- Python 3.12+
+- PostgreSQL 16+
+- Docker (optional)
 
-### Setup
+### Option 1: Docker (Recommended)
 
 ```bash
-# Clone and navigate
-cd /Volumes/CrucialX9_MAC/github_repos/AirBnbfastapi
+# Clone
+git clone https://github.com/pankajshakya627/Airbnb.git
+cd Airbnb
 
+# Start everything
+docker compose up -d
+
+# Run migrations
+docker compose exec app alembic upgrade head
+```
+
+### Option 2: Local Setup
+
+```bash
 # Create virtual environment
-python3.11 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
@@ -55,6 +279,22 @@ alembic upgrade head
 
 # Start server
 uvicorn app.main:app --reload
+```
+
+### Option 3: Pull from GHCR
+
+```bash
+# Login to GitHub Container Registry
+echo "YOUR_GITHUB_PAT" | docker login ghcr.io -u YOUR_USERNAME --password-stdin
+
+# Pull the latest image
+docker pull ghcr.io/pankajshakya627/airbnb:latest
+
+# Run with your database
+docker run -d -p 8000:8000 \
+  -e DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/airbnb \
+  -e SECRET_KEY=your-secret-key \
+  ghcr.io/pankajshakya627/airbnb:latest
 ```
 
 **Access the API:**
@@ -446,44 +686,98 @@ curl -X GET "http://localhost:8000/admin/hotels/1/reports?start_date=2026-01-01&
 ## 🧪 Running Tests
 
 ```bash
-# Activate virtual environment
-source venv/bin/activate
-
 # Run all tests
 pytest
 
-# Run with coverage
-pytest --cov=app --cov-report=html
+# Run with coverage report
+pytest --cov=app --cov-report=term-missing --cov-report=html
 
 # Run specific test file
 pytest tests/test_auth.py -v
 
-# Run specific test
-pytest tests/test_auth.py::test_signup -v
+# Run specific test class
+pytest tests/test_bookings.py::TestInitializeBooking -v
 ```
+
+**Current Coverage: 77%** across 56 tests covering auth, hotels, rooms, bookings, inventory, browse, and user management.
+
+---
+
+## 🔄 CI/CD Pipeline
+
+```mermaid
+flowchart LR
+    subgraph CI["🔁 CI Pipeline"]
+        direction LR
+        PUSH["📤 Push to main"] --> LINT["🔍 Lint\n(Ruff)"]
+        LINT --> TEST["🧪 Test\n(56 tests + PostgreSQL)"]
+        TEST --> BUILD["🐳 Build\nDocker Image"]
+        BUILD --> PUSH_IMG["📦 Push to\nGHCR"]
+    end
+
+    subgraph CD["🚀 CD Pipeline"]
+        direction LR
+        PULL["📥 Pull\nLatest Image"] --> DEPLOY["🚀 Deploy\n(SSH/ECS/Railway)"]
+        DEPLOY --> HEALTH["❤️ Health\nCheck"]
+    end
+
+    CI --> CD
+
+    style CI fill:#1a1a2e,stroke:#e94560,color:#eee
+    style CD fill:#16213e,stroke:#0f3460,color:#eee
+```
+
+| Stage      | Tool                   | What it does                                      |
+| ---------- | ---------------------- | ------------------------------------------------- |
+| **Lint**   | Ruff                   | Checks code style, import sorting, common bugs    |
+| **Test**   | Pytest + PostgreSQL 16 | Runs 56 tests with service container + coverage   |
+| **Build**  | Docker Buildx          | Multi-stage build with layer caching              |
+| **Push**   | GHCR                   | Pushes to `ghcr.io/pankajshakya627/airbnb:latest` |
+| **Deploy** | Configurable           | SSH, AWS ECS, or Railway (placeholder)            |
+
+---
+
+## ✅ Code Quality
+
+```bash
+# Lint
+ruff check .
+
+# Format
+ruff format .
+
+# Lint + auto-fix
+ruff check . --fix
+```
+
+Enforced rules: `pycodestyle`, `pyflakes`, `isort`, `pyupgrade`, `flake8-bugbear`, `flake8-simplify`
 
 ---
 
 ## 📁 Project Structure
 
 ```
-app/
-├── main.py              # FastAPI application entry
-├── config.py            # Environment configuration
-├── database.py          # SQLAlchemy async setup
-├── models/              # 7 SQLAlchemy ORM models
-├── schemas/             # Pydantic request/response DTOs
-├── routers/             # 8 API router modules
-├── services/            # Business logic layer
-├── security/            # JWT & authentication
-└── exceptions/          # Global error handlers
-tests/
-├── conftest.py          # Pytest fixtures
-├── test_auth.py         # Auth endpoint tests
-├── test_hotels.py       # Hotel management tests
-├── test_rooms.py        # Room management tests
-├── test_bookings.py     # Booking flow tests
-└── test_users.py        # User profile tests
+├── .github/workflows/     # CI/CD pipeline
+│   ├── ci.yml             # Lint → Test → Docker Build
+│   └── deploy.yml         # Deployment placeholder
+├── app/
+│   ├── main.py            # FastAPI application entry
+│   ├── config.py          # Environment configuration
+│   ├── database.py        # SQLAlchemy async setup
+│   ├── models/            # 7 SQLAlchemy ORM models
+│   ├── schemas/           # Pydantic v2 request/response DTOs
+│   ├── routers/           # 8 API router modules
+│   ├── services/          # Business logic layer
+│   ├── security/          # JWT & RBAC authentication
+│   └── exceptions/        # Global error handlers
+├── tests/                 # 56 async tests (77% coverage)
+├── docs/
+│   ├── HLD.md             # High-Level Design document
+│   └── LLD.md             # Low-Level Design document
+├── Dockerfile             # Multi-stage build + HEALTHCHECK
+├── docker-compose.yml     # Local development stack
+├── ruff.toml              # Linter/formatter configuration
+└── .dockerignore          # Docker build exclusions
 ```
 
 ---
@@ -500,6 +794,14 @@ tests/
 | `STRIPE_API_KEY`              | Stripe secret key            | Required              |
 | `STRIPE_WEBHOOK_SECRET`       | Stripe webhook secret        | Required              |
 | `FRONTEND_URL`                | Frontend URL for redirects   | http://localhost:3000 |
+
+---
+
+## 📚 Documentation
+
+- **[High-Level Design (HLD)](docs/HLD.md)** — Architecture, database design, system flows, interview Q&A
+- **[Low-Level Design (LLD)](docs/LLD.md)** — Class diagrams, schemas, service layer, security implementation
+- **[Swagger UI](http://localhost:8000/docs)** — Interactive API documentation (when running)
 
 ---
 
